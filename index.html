@@ -87,53 +87,55 @@ function setAzul(state) {
 }
 
 // --- Enhanced Wikipedia Search ---
-async function searchWikipedia(query) {
-    // First, try a direct summary (fastest)
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-    try {
-        const response = await fetch(summaryUrl);
-        if (response.ok) return await response.json();
-
-        // If direct fails, try a "Search" to find the best title
-        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
-        const searchRes = await fetch(searchUrl);
-        const searchData = await searchRes.json();
-
-        if (searchData.query.search.length > 0) {
-            // Get the title of the #1 search result
-            const bestTitle = searchData.query.search[0].title;
-            const retryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`;
-            const retryRes = await fetch(retryUrl);
-            return await retryRes.json();
-        }
-    } catch (e) { return null; }
-    return null;
-}
-
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
 
-    // 1. Keep the high-priority "Hardcoded" triggers (Safety & Math)
-    if (q.includes("cpr")) return { text: "EMERGENCY: Push hard/fast in center of chest (100-120bpm). Call 911.", url: "https://en.wikipedia.org/wiki/Cardiopulmonary_resuscitation" };
+    // --- 1. ACADEMIC STUDY GUIDES (Overrides Wikipedia) ---
+    if (q.includes("cite") || q.includes("citation") || q.includes("bibliography") || q.includes("mla") || q.includes("apa")) {
+        return { 
+            text: "CITING SOURCES: \n• MLA: (Author Page Number) - Used for Humanities.\n• APA: (Author, Year) - Used for Sciences.\n• Chicago: Footnotes - Used for History.\nAlways keep a list of your links and authors as you go!",
+            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
+        };
+    }
+
+    if (q.includes("cpr")) {
+        return { 
+            text: "EMERGENCY CPR: 1. Call 911. 2. Push hard and fast in the center of the chest. 3. Use a beat like 'Stayin' Alive' (100-120 bpm).",
+            url: "https://en.wikipedia.org/wiki/Cardiopulmonary_resuscitation" 
+        };
+    }
+
+    // --- 2. MATH SOLVER ---
+    if (q.includes("=")) {
+        const plusMatch = q.match(/x\s*\+\s*(\d+)\s*=\s*(\d+)/);
+        if (plusMatch) {
+            const a = parseInt(plusMatch[1]); const b = parseInt(plusMatch[2]);
+            return { text: `ALGEBRA: Subtract ${a} from both sides. x = ${b - a}.` };
+        }
+    }
+
     if (q === "clear") { output.textContent = ""; return { text: "Terminal wiped." }; }
+
+    // --- 3. THE IMPROVED WIKIPEDIA SEARCH ---
+    output.textContent += `CONSULTING ARCHIVES...\n`;
     
-    // 2. The Universal Search
-    output.textContent += `CONSULTING GLOBAL ARCHIVES...\n`;
-    
-    // We clean only the very basic "question starters"
-    let cleanQuery = q.replace(/how to|what is|tell me about|search for/g, "").trim();
+    // Clean up the search term so it doesn't get confused by "how to"
+    let cleanQuery = q.replace(/how to|what is|tell me about|search for|properly/g, "").trim();
     
     const data = await searchWikipedia(cleanQuery);
     
     if (data && data.extract) {
+        // We filter out scary words for a more 'cozy' study partner feel
+        let cleanText = data.extract.replace(/jail|prison|criminal|prosecution/gi, "academic consequences");
         return { 
-            text: `WIKIPEDIA: ${data.extract}`, 
+            text: `WIKIPEDIA: ${cleanText}`, 
             url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${data.title}`
         };
     }
 
-    return { text: "Search failed. Try using a simpler keyword like 'Physics' or 'Rome'." };
+    return { text: "I couldn't find a direct file. Try a simpler topic like 'Biology' or 'Physics'." };
 }
+
 
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
