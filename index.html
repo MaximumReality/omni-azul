@@ -86,63 +86,68 @@ function setAzul(state) {
     else if (state === 'hover') { azul.src = 'hover-azul.png'; azulCont.style.transform = 'translateY(-30px)'; }
 }
 
-// --- Enhanced Wikipedia Search ---
+// --- Updated Resilient Search ---
+async function searchWikipedia(query) {
+    try {
+        // Step 1: Try a direct summary
+        let url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+        let response = await fetch(url);
+        if (response.ok) return await response.json();
+
+        // Step 2: If direct fails, use 'Query' search to find the closest page title
+        let searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+        let searchRes = await fetch(searchUrl);
+        let searchData = await searchRes.json();
+
+        if (searchData.query.search.length > 0) {
+            let topTitle = searchData.query.search[0].title;
+            let retryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topTitle)}`;
+            let retryRes = await fetch(retryUrl);
+            return await retryRes.json();
+        }
+    } catch (e) { console.error(e); return null; }
+    return null;
+}
+
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
 
-    // --- 1. SIMPLE CALCULATOR (9x4, 10/2, 5+5) ---
-    // This looks for "Number x Number" or "Number * Number"
+    // 1. CHEMISTRY MODE (e.g., "What is Gold", "Atomic number of Oxygen")
+    const elements = { 
+        "gold": "Au, Atomic #79. A dense, soft, yellow metal.", 
+        "oxygen": "O, Atomic #8. Essential for life and combustion.",
+        "hydrogen": "H, Atomic #1. The most abundant element in the universe."
+    };
+    for (let e in elements) {
+        if (q.includes(e)) return { text: `SCIENCE LOG: ${elements[e]}` };
+    }
+
+    // 2. MATH & CITATIONS (Your working logic)
+    if (q.includes("cite") || q.includes("source") || q.includes("mla") || q.includes("apa")) {
+        return { text: "CITATION GUIDE: MLA: (Author Page). APA: (Author, Year). Use these for credit!", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
+    }
     const calcMatch = q.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
     if (calcMatch) {
-        const n1 = parseInt(calcMatch[1]);
-        const op = calcMatch[2];
-        const n2 = parseInt(calcMatch[3]);
-        let res;
-        if (op === 'x' || op === '*') res = n1 * n2;
-        if (op === '+') res = n1 + n2;
-        if (op === '-') res = n1 - n2;
-        if (op === '/') res = n1 / n2;
+        const n1 = parseInt(calcMatch[1]); const op = calcMatch[2]; const n2 = parseInt(calcMatch[3]);
+        let res = (op === 'x' || op === '*') ? n1 * n2 : (op === '+') ? n1 + n2 : (op === '-') ? n1 - n2 : n1 / n2;
         return { text: `CALCULATION: ${n1} ${op} ${n2} = ${res}.` };
     }
 
-    // --- 2. CONCEPTUAL ALGEBRA (How to solve for x) ---
-    if (q.includes("solve for x") || q.includes("how to solve x")) {
-        return { 
-            text: "ALGEBRA TIP: To solve for x, you must isolate it. 1. Move numbers without x to the other side (change + to -). 2. Divide by the number attached to x. Try typing an equation like '2x = 10'.",
-            url: "https://en.wikipedia.org/wiki/Algebra"
-        };
-    }
-
-    // --- 3. ACADEMIC CITATIONS ---
-    if (q.includes("cite") || q.includes("source") || q.includes("mla") || q.includes("apa")) {
-        return { 
-            text: "CITATION GUIDE: MLA uses (Author Page). APA uses (Author, Year). Use these to give credit to researchers!",
-            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
-        };
-    }
-
-    // --- 4. ACTUAL EQUATION SOLVER (x + 5 = 10) ---
-    if (q.includes("=")) {
-        const plusMatch = q.match(/x\s*\+\s*(\d+)\s*=\s*(\d+)/);
-        if (plusMatch) {
-            const a = parseInt(plusMatch[1]); const b = parseInt(plusMatch[2]);
-            return { text: `SOLVING: Subtract ${a} from both sides. x = ${b - a}.` };
-        }
-    }
-
-    if (q === "clear") { output.textContent = ""; return { text: "Terminal wiped." }; }
-
-    // --- 5. WIKIPEDIA FALLBACK ---
-    output.textContent += `CONSULTING ARCHIVES...\n`;
-    let cleanQuery = q.replace(/how to|what is|tell me about|search for/g, "").trim();
+    // 3. UNIVERSAL RESEARCH
+    output.textContent += `CONSULTING GLOBAL ARCHIVES...\n`;
+    let cleanQuery = q.replace(/how to|what is|tell me about|where is|search for/g, "").trim();
     
     const data = await searchWikipedia(cleanQuery);
     if (data && data.extract) {
-        return { text: `WIKIPEDIA: ${data.extract}`, url: data.content_urls?.desktop.page };
+        return { 
+            text: `WIKIPEDIA: ${data.extract}`, 
+            url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${data.title}` 
+        };
     }
 
-    return { text: "I couldn't find a direct file. Try a specific topic like 'Photosynthesis' or 'Newton'." };
+    return { text: "I couldn't find a direct file. Try being more specific or use a single keyword." };
 }
+
 
 
 input.addEventListener('keydown', async (e) => {
