@@ -156,20 +156,21 @@ async function typeText(text, url = null, geo = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        // 1. Initial search to find the most relevant title
-        const sUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+        // 1. We ask Wikipedia for the most relevant PAGE TITLE first
+        const sUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&namespace=0&format=json&origin=*`;
         const sRes = await fetch(sUrl);
         const sData = await sRes.json();
         
-        if (sData.query && sData.query.search.length > 0) {
-            const title = sData.query.search[0].title;
+        // sData[1][0] is the first actual title found (e.g., "Jellyfish" instead of "Neuropathy")
+        if (sData && sData[1].length > 0) {
+            const title = sData[1][0];
             
-            // 2. GET PRECISE SUMMARY (Better for science/general questions)
+            // 2. GET PRECISE SUMMARY
             const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
             const sumRes = await fetch(sumUrl);
             const sumData = await sumRes.json();
 
-            // 3. GET COORDINATES (Specifically for locations)
+            // 3. GET COORDINATES
             const coordUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=${encodeURIComponent(title)}&format=json&origin=*`;
             const cRes = await fetch(coordUrl);
             const cData = await cRes.json();
