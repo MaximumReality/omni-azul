@@ -99,12 +99,28 @@ async function searchWikipedia(subject) {
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
 
-    // --- MATH SOLVER ---
+    // --- 1. EMERGENCY PROTOCOL: CPR ---
+    if (q.includes("cpr")) {
+        return { 
+            text: "EMERGENCY PROTOCOL: 1. Check the scene. 2. Call 911. 3. Push hard and fast in the center of the chest (100-120 bpm). 4. Deliver rescue breaths if trained. Continue until help arrives.",
+            url: "https://en.wikipedia.org/wiki/Cardiopulmonary_resuscitation" 
+        };
+    }
+
+    // --- 2. ACADEMIC PROTOCOL: CITATIONS ---
+    if (q.includes("cite") || q.includes("citation") || q.includes("bibliography")) {
+        return { 
+            text: "CITATION GUIDE: For APA, use (Author, Year). For MLA, use (Author Page). Always include a full reference list at the end of your paper to avoid plagiarism.",
+            url: "https://en.wikipedia.org/wiki/Citation" 
+        };
+    }
+
+    // --- 3. MATH SOLVER ---
     if (q.includes("=")) {
-        if (q.includes("+")) {
-            const parts = q.split(/[+=]/);
-            const a = parseInt(parts[1]); const b = parseInt(parts[2]);
-            return { text: `ALGEBRA: To find x in x + ${a} = ${b}, subtract ${a} from both sides. x = ${b - a}.` };
+        const plusMatch = q.match(/x\s*\+\s*(\d+)\s*=\s*(\d+)/);
+        if (plusMatch) {
+            const a = parseInt(plusMatch[1]); const b = parseInt(plusMatch[2]);
+            return { text: `ALGEBRA: Subtract ${a} from both sides. x = ${b - a}.` };
         }
         const multMatch = q.match(/(\d+)x\s*=\s*(\d+)/);
         if (multMatch) {
@@ -115,18 +131,24 @@ async function getAnswer(query) {
 
     if (q === "clear") { output.textContent = ""; return { text: "Terminal wiped." }; }
 
-    // --- WIKIPEDIA RESEARCH ---
-    let subject = q.replace(/how|what|is|are|the|find|search|tell|me|about/g, "").trim();
-    if (!subject) subject = q;
+    // --- 4. IMPROVED RESEARCH SEARCH ---
+    // If it's a long question, we try to find the last word or the most unique word
+    let words = q.split(" ");
+    let subject = words[words.length - 1]; // Try the last word (e.g., "Photosynthesis")
+    
+    if (q.includes("about")) subject = q.split("about")[1].trim();
 
     output.textContent += `ACCESSING ARCHIVES: ${subject.toUpperCase()}...\n`;
-    const data = await searchWikipedia(subject);
+    let data = await searchWikipedia(subject);
+    
+    // If the specific subject fails, try the whole query as a backup
+    if (!data) data = await searchWikipedia(q);
     
     if (data && data.extract) {
         return { text: `WIKIPEDIA: ${data.extract}`, url: data.content_urls.desktop.page };
     }
 
-    return { text: "I couldn't find that specific data. Try a direct topic name." };
+    return { text: "I'm having trouble finding that. Try a simpler topic like 'Biology', 'Rome', or 'Calculus'." };
 }
 
 input.addEventListener('keydown', async (e) => {
