@@ -3,166 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mochkil & Azul Research Lab</title>
+<title>Interactive Azul Prototype</title>
 <style>
-body {
-    margin: 0;
-    font-family: 'Courier New', monospace;
-    background: #0b0b0f;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-header {
-    background: #111;
-    padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #ff00ff;
-}
-header h1 {
-    font-size: 1.2rem;
-    color: #ff00ff;
-}
-header select {
-    padding: 5px 10px;
-    font-size: 0.9rem;
-    background: #222;
-    color: #fff;
-    border: 1px solid #ff00ff;
-    border-radius: 5px;
-}
-#console {
-    flex: 1;
-    padding: 15px;
-    overflow-y: auto;
-    background: #111;
-}
-.message {
-    margin-bottom: 12px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    max-width: 80%;
-    animation: fadeIn 0.3s ease-out;
-}
-.mochkil { background: #333; color: #ffb347; align-self: flex-start; }
-.azul { background: #222244; color: #7fdbff; align-self: flex-start; }
-.user { background: #555; color: #fff; align-self: flex-end; }
-input[type=text] {
-    width: calc(100% - 100px);
-    padding: 10px;
-    font-size: 1rem;
-    border-radius: 5px;
-    border: none;
-    margin: 10px;
-}
-button {
-    padding: 10px 15px;
-    font-size: 1rem;
-    margin-right: 10px;
-    border-radius: 5px;
-    border: none;
-    background: #ff00ff;
-    color: #fff;
-    cursor: pointer;
-}
-button:hover { background: #ff77ff; }
-@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+  body { background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; margin:0; }
+  #azul-container { position: absolute; bottom: 50px; left: 50px; width: 150px; height: 150px; }
+  #azul-container img { width: 100%; height: 100%; transition: all 1s ease; }
+
+  .link-btn {
+    display: inline-block; padding: 10px 15px; margin: 20px; background: #222; border: 2px solid #0ff;
+    border-radius: 10px; cursor: pointer; transition: background 0.2s;
+  }
+  .link-btn:hover { background: #0ff; color: #000; }
 </style>
 </head>
 <body>
 
-<header>
-    <h1>Mochkil & Azul Research Lab</h1>
-    <select id="botSelector">
-        <option value="mochkil">Mochkil</option>
-        <option value="azul">Azul</option>
-    </select>
-</header>
+<div id="azul-container">
+  <img id="azul" src="waiting_azul.png" alt="Azul">
+</div>
 
-<div id="console"></div>
+<div style="position:absolute; top:50px; left:50px;">
+  <div class="link-btn" data-target="answer1">Ask about NASA</div>
+  <div class="link-btn" data-target="answer2">Ask about Math</div>
+  <div class="link-btn" data-target="answer3">Ask about Coding</div>
+</div>
 
-<div style="display:flex; padding:10px; background:#111; border-top:2px solid #ff00ff;">
-    <input type="text" id="userInput" placeholder="Ask a question...">
-    <button onclick="askQuestion()">Ask</button>
-    <button onclick="clearConsole()">Clear</button>
+<div id="answers" style="position:absolute; top:200px; left:50px; width:400px;">
+  <div id="answer1" style="margin-bottom:15px; color:#0ff;"></div>
+  <div id="answer2" style="margin-bottom:15px; color:#0f0;"></div>
+  <div id="answer3" style="margin-bottom:15px; color:#ff0;"></div>
 </div>
 
 <script>
-const consoleEl = document.getElementById('console');
-const botSelector = document.getElementById('botSelector');
-const userInput = document.getElementById('userInput');
+const azul = document.getElementById('azul');
+const container = document.getElementById('azul-container');
+const links = document.querySelectorAll('.link-btn');
 
-// --- Display message ---
-function displayMessage(text, type) {
-    const div = document.createElement('div');
-    div.className = 'message ' + type;
-    div.innerHTML = text;
-    consoleEl.appendChild(div);
-    consoleEl.scrollTop = consoleEl.scrollHeight;
+// Default positions
+const defaultPos = { left: 50, bottom: 50 };
+
+// Move Azul function
+function moveAzul(targetElem) {
+  const rect = targetElem.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+
+  // Start flying
+  azul.src = 'flying-azul-front-facing.png';
+
+  // Animate to target (centered above)
+  const targetX = rect.left - containerRect.width / 2 + rect.width / 2;
+  const targetY = window.innerHeight - rect.top; // from bottom
+  container.style.left = targetX + 'px';
+  container.style.bottom = targetY + 'px';
+
+  // After flying, hover
+  setTimeout(() => {
+    azul.src = 'hover-azul.png';
+    // Display fake answer
+    const answerBox = document.getElementById(targetElem.dataset.target);
+    answerBox.textContent = `💡 Azul says: Here's some info about ${targetElem.textContent.replace('Ask about ','')}!`;
+  }, 1000);
+
+  // Return to default after 3s hover
+  setTimeout(() => {
+    azul.src = 'waiting_azul.png';
+    container.style.left = defaultPos.left + 'px';
+    container.style.bottom = defaultPos.bottom + 'px';
+  }, 4000);
 }
 
-// --- Clear console ---
-function clearConsole() {
-    consoleEl.innerHTML = '';
-}
-
-// --- Fetch answer from Wikipedia ---
-async function fetchWikipedia(query) {
-    const api = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-    try {
-        const response = await fetch(api);
-        if(!response.ok) throw new Error('Not found');
-        const data = await response.json();
-        return data.extract || "Sorry, no summary available.";
-    } catch(e) {
-        return "I couldn't find that on Wikipedia.";
-    }
-}
-
-// --- Fetch random NASA image & info ---
-async function fetchNASA() {
-    const api = 'https://images-api.nasa.gov/search?q=space&media_type=image';
-    try {
-        const response = await fetch(api);
-        const data = await response.json();
-        const items = data.collection.items;
-        if(items.length === 0) return "No NASA images found.";
-        const random = items[Math.floor(Math.random() * items.length)];
-        const title = random.data[0].title;
-        const img = random.links[0].href;
-        return `🚀 <b>${title}</b><br><img src="${img}" style="max-width:300px; margin-top:5px;">`;
-    } catch(e) {
-        return "NASA API error.";
-    }
-}
-
-// --- Ask question ---
-async function askQuestion() {
-    const question = userInput.value.trim();
-    if(!question) return;
-    displayMessage(question, 'user');
-    userInput.value = '';
-    
-    const bot = botSelector.value;
-    displayMessage('Thinking...', bot);
-    
-    let answer = '';
-    if(bot === 'mochkil') {
-        // Mochkil gives Wikipedia-based answer
-        answer = await fetchWikipedia(question);
-    } else if(bot === 'azul') {
-        // Azul gives NASA fun fact for space related or Wikipedia otherwise
-        if(question.toLowerCase().includes('space') || question.toLowerCase().includes('planet') || question.toLowerCase().includes('moon')) {
-            answer = await fetchNASA();
-        } else {
-            answer = await fetchWikipedia(question);
-        }
-    }
-    displayMessage(answer, bot);
-}
+// Event listeners
+links.forEach(link => {
+  link.addEventListener('click', () => moveAzul(link));
+});
 </script>
 
 </body>
