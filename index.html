@@ -123,26 +123,27 @@ async function typeText(text, url = null) {
 
 async function searchWiki(query) {
     try {
-        let clean = query.replace(/how many|what is|define|tell me about/gi, "").trim();
-        const sUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(clean)}&format=json&origin=*&srlimit=5`;
+        // We keep the question words but clean up the syntax
+        let clean = query.trim();
+        
+        // We use 'generator' to get the most relevant page based on the full question
+        const sUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(clean)}&gsrlimit=1&prop=extracts|pageimages|info&exintro&explaintext&inprop=url&format=json&origin=*`;
+        
         const sRes = await fetch(sUrl);
         const sData = await sRes.json();
         
-        if (sData.query.search.length > 0) {
-            let idx = 0;
-            const blacklist = ["phrase", "idiom", "tripe", "recipe", "song", "album"];
-            for(let i=0; i<sData.query.search.length; i++) {
-                if (!blacklist.some(w => sData.query.search[i].title.toLowerCase().includes(w))) {
-                    idx = i; break;
-                }
-            }
-            const title = sData.query.search[idx].title;
-            const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`);
-            return await res.json();
+        if (sData.query && sData.query.pages) {
+            const pageId = Object.keys(sData.query.pages)[0];
+            const page = sData.query.pages[pageId];
+            return {
+                extract: page.extract,
+                url: page.fullurl
+            };
         }
     } catch (e) { return null; }
     return null;
 }
+
 
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
