@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Azul Helper Terminal</title>
+<title>Azul Cozy Console</title>
 <style>
   :root {
     --terminal-green: #00ff41;
@@ -18,59 +18,45 @@
     overflow: hidden;
   }
 
-  /* --- CRT & Scanline Effects --- */
+  /* --- CRT Overlay --- */
   #scanlines {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(
-        rgba(18, 16, 16, 0) 50%, 
-        rgba(0, 0, 0, 0.25) 50%
-    ), linear-gradient(90deg, 
-        rgba(255, 0, 0, 0.06), 
-        rgba(0, 255, 0, 0.02), 
-        rgba(0, 0, 255, 0.06)
-    );
-    background-size: 100% 4px, 3px 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+    background-size: 100% 3px, 3px 100%;
     pointer-events: none;
     z-index: 100;
-    animation: flicker 0.15s infinite;
-    opacity: 0.3;
-  }
-
-  @keyframes flicker {
-    0% { opacity: 0.25; }
-    50% { opacity: 0.35; }
-    100% { opacity: 0.25; }
+    opacity: 0.4;
   }
 
   #terminal {
     position: relative;
-    width: 100%;
-    height: 100%;
-    padding: 20px;
+    width: 100%; height: 100%;
+    padding: 25px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    text-shadow: 2px 0 1px rgba(255,0,0,0.3), -2px 0 1px rgba(0,0,255,0.3), 0 0 5px var(--glow-color);
+    text-shadow: 0 0 5px var(--glow-color);
   }
 
   #output {
     flex-grow: 1;
     white-space: pre-wrap;
-    line-height: 1.5em;
+    line-height: 1.6em;
     overflow-y: auto;
-    margin-bottom: 80px;
+    margin-bottom: 90px;
     scrollbar-width: none;
   }
   #output::-webkit-scrollbar { display: none; }
 
   #inputBar {
     position: fixed;
-    bottom: 20px;
-    left: 20px;
-    width: calc(100% - 180px);
+    bottom: 25px;
+    left: 25px;
+    width: calc(100% - 190px);
     display: flex;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.85);
     border-top: 1px solid var(--terminal-green);
     padding-top: 10px;
     z-index: 10;
@@ -82,41 +68,46 @@
     border: none;
     color: var(--terminal-green);
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 1.1rem;
     outline: none;
   }
 
-  /* --- Azul Sprite Styling --- */
+  /* --- Azul State Container --- */
   #azulContainer {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 120px;
-    text-align: center;
-    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 10;
+    bottom: 30px;
+    right: 30px;
+    width: 130px;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 20;
   }
 
   #azulSprite {
     width: 100%;
     height: auto;
-    filter: drop-shadow(0 0 10px var(--glow-color));
+    filter: drop-shadow(0 0 8px var(--glow-color));
   }
 
-  .floating { animation: float 3s ease-in-out infinite; }
-  @keyframes float {
+  /* --- Animations --- */
+  .bobbing { animation: bob 4s ease-in-out infinite; }
+  @keyframes bob {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
+    50% { transform: translateY(-8px); }
   }
 
-  .flying-active {
-    animation: shake 0.1s infinite !important;
+  .shake-flight {
+    animation: flight-wobble 0.15s infinite;
   }
-  @keyframes shake {
+  @keyframes flight-wobble {
     0% { transform: translate(1px, 1px); }
-    50% { transform: translate(-2px, -1px); }
+    50% { transform: translate(-1px, -1px); }
     100% { transform: translate(1px, 1px); }
   }
+
 </style>
 </head>
 <body>
@@ -127,12 +118,12 @@
   <div id="output"></div>
   <div id="inputBar">
     <span style="margin-right:10px;">></span>
-    <input type="text" id="userInput" autofocus autocomplete="off" placeholder="Ask Azul...">
+    <input type="text" id="userInput" autofocus autocomplete="off" placeholder="Message Azul...">
   </div>
 </div>
 
-<div id="azulContainer" class="floating">
-  <img id="azulSprite" src="idle_azul.png" alt="Azul">
+<div id="azulContainer" class="bobbing">
+  <img id="azulSprite" src="waiting_azul.png" alt="Azul">
 </div>
 
 <script>
@@ -141,112 +132,118 @@ const input = document.getElementById('userInput');
 const azul = document.getElementById('azulSprite');
 const azulCont = document.getElementById('azulContainer');
 
-// --- Audio ---
+// --- Audio Beeps ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playBeep(freq = 400, duration = 0.05) {
+function playBeep(freq = 400) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'square';
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.005, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.003, audioCtx.currentTime);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + duration);
+    osc.stop(audioCtx.currentTime + 0.04);
 }
 
-// --- Terminal Logic ---
-async function typeText(text) {
+// --- Typing Function ---
+async function typeText(text, isAzul = true) {
+    const prefix = isAzul ? "AZUL: " : "";
+    if (prefix) output.textContent += prefix;
+    
     for (let char of text) {
         output.textContent += char;
-        if (char !== " ") playBeep(500 + (Math.random() * 200));
+        playBeep(400 + (Math.random() * 300));
         output.scrollTop = output.scrollHeight;
-        await new Promise(r => setTimeout(r, 40));
+        await new Promise(r => setTimeout(r, 35));
     }
     output.textContent += "\n\n";
 }
 
-// --- Azul States ---
-const azulStates = {
-    idle: 'idle_azul.png',
-    waiting: 'waiting_azul.png',
-    flying: 'flying-azul-front-facing.png',
-    hover: 'hover-azul.png'
+// --- State Management ---
+const sprites = {
+    waiting: 'waiting_azul.png',   // Seated at table (Default)
+    idle: 'idle_azul.png',         // Seated waiting (Thinking)
+    flying: 'flying-azul-front-facing.png', // Transitioning
+    hover: 'hover-azul.png'        // Showing results
 };
 
-function setAzul(state) {
-    azul.src = azulStates[state];
-    if(state === 'flying') {
-        azulCont.classList.add('flying-active');
-        azulCont.style.transform = 'scale(1.2) translateY(-80px)';
+function updateAzul(state) {
+    azul.src = sprites[state];
+    
+    // Reset classes
+    azulCont.classList.remove('shake-flight');
+    
+    if (state === 'flying') {
+        azulCont.classList.add('shake-flight');
+        azulCont.style.transform = 'translateY(-100px) scale(1.1)';
+    } else if (state === 'hover') {
+        azulCont.style.transform = 'translateY(-40px) scale(1.05)';
     } else {
-        azulCont.classList.remove('flying-active');
-        azulCont.style.transform = 'scale(1) translateY(0)';
+        azulCont.style.transform = 'translateY(0) scale(1)';
     }
 }
 
-// --- Knowledge Logic ---
+// --- Data Logic ---
 async function getAnswer(query) {
     const q = query.toLowerCase();
-    if (q.includes("space") || q.includes("nasa") || q.includes("star")) {
+    
+    // Simulate NASA fetch
+    if (q.includes("space") || q.includes("nasa")) {
         try {
             const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
             const data = await res.json();
-            return `NASA DATA: Today's subject is ${data.title}. ${data.explanation.substring(0, 100)}...`;
-        } catch (e) {
-            return "Connection to NASA failed. Accessing local backup: The universe is vast and mostly empty space.";
+            return `I've accessed the NASA archives. Today's report: "${data.title}". It's fascinating.`;
+        } catch(e) {
+            return "The satellite link is shaky, but I recall that space is infinitely cozy yet cold.";
         }
     }
-    
-    const local = {
-        "hello": "System online. Greetings, Operator.",
-        "azul": "I am Azul. I navigate this terminal to find the data you require.",
-        "clear": "Memory wiped (visually).",
-        "help": "Try asking about 'space', 'nasa', or 'azul'."
+
+    const responses = {
+        "hello": "Hello! I've been keeping your seat warm. What's on your mind?",
+        "azul": "That's me. Seated, caffeinated, and ready to assist.",
+        "coffee": "It's digital decaf. Keeps my processors smooth.",
+        "links": "Searching for connection points... I'll fly over to them now."
     };
 
-    for (let key in local) {
-        if (q.includes(key)) return local[key];
+    for (let key in responses) {
+        if (q.includes(key)) return responses[key];
     }
-    return "Query unrecognized. Searching outer rim... No data found.";
+    return "I'm not sure about that, but I'm happy to keep looking through the logs with you.";
 }
 
-// --- Input Loop ---
-let history = [];
-let historyIndex = -1;
-
+// --- Interaction Loop ---
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         const val = input.value.trim();
         if (!val) return;
         
-        history.push(val);
-        historyIndex = history.length;
         input.value = "";
         output.textContent += `> ${val}\n`;
 
-        setAzul('waiting');
+        // 1. Azul starts thinking (Idle seated)
+        updateAzul('idle');
         const reply = await getAnswer(val);
-        
-        setAzul('flying');
+        await new Promise(r => setTimeout(r, 600));
+
+        // 2. Azul flies to deliver the news
+        updateAzul('flying');
         await new Promise(r => setTimeout(r, 800));
-        
-        setAzul('hover');
-        await typeText(`AZUL: ${reply}`);
-        setAzul('idle');
-    }
-    
-    // History Navigation (Up Arrow)
-    if (e.key === 'ArrowUp' && history.length > 0) {
-        historyIndex = Math.max(0, historyIndex - 1);
-        input.value = history[historyIndex];
+
+        // 3. Azul hovers and speaks
+        updateAzul('hover');
+        await typeText(reply);
+
+        // 4. Return to the table
+        await new Promise(r => setTimeout(r, 1000));
+        updateAzul('waiting');
     }
 });
 
-// Start
+// Initial Load
 window.onload = () => {
-    typeText("COZY CONSOLE v1.0.4\nREADY FOR INPUT...");
+    typeText("SYSTEMS WARMING UP... COZY MODE ENABLED.", false);
 };
 </script>
 </body>
