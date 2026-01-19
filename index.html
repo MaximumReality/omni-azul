@@ -76,39 +76,60 @@ function setAzul(state) {
 // --- The Global Search Engine ---
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
+    sessionQueries++;
 
-    // 1. HARDCODED TRAPS (Comedy vs History)
-    if (q.includes("1st president") || q.includes("first president")) {
-        return { 
-            text: "HISTORICAL RECORD: George Washington (1732–1799) was the first president of the United States, serving from 1789 to 1797. He is often called the 'Father of His Country'.", 
-            url: "https://en.wikipedia.org/wiki/George_Washington" 
-        };
+    // --- 1. THE KNOWLEDGE BASE (Local Overrides) ---
+    // This section stops Wikipedia from giving you comedy sketches for history questions!
+    const localFacts = {
+        "first president": {
+            text: "HISTORICAL RECORD: George Washington was the 1st U.S. President (1789–1797). He is famously known for leading the Continental Army and presiding over the Constitutional Convention.",
+            url: "https://en.wikipedia.org/wiki/George_Washington"
+        },
+        "king of morocco": {
+            text: "POLITICAL RECORD: The current King of Morocco is Mohammed VI. He ascended to the throne on July 23, 1999, following the death of his father, King Hassan II.",
+            url: "https://en.wikipedia.org/wiki/Mohammed_VI_of_Morocco"
+        },
+        "cheap flights": {
+            text: "TRAVEL TIP: To find cheap flights from America to Europe, experts suggest booking 3-6 months in advance, using 'Incognito Mode' to search, and checking hubs like London, Dublin, or Reykjavik.",
+            url: "https://www.google.com/travel/flights"
+        }
+    };
+
+    // Check if the query matches any of our local facts
+    for (let key in localFacts) {
+        if (q.includes(key)) {
+            return {
+                text: `[ENTRY #${sessionQueries}] ${localFacts[key].text}`,
+                url: localFacts[key].url
+            };
+        }
     }
 
-    // 2. MATH & ACADEMIC SHORTCUTS (Keep your working code)
+    // --- 2. MATH & ACADEMIC SHORTCUTS ---
+    if (q.includes("cite") || q.includes("source")) {
+        return { text: `[ENTRY #${sessionQueries}] CITE GUIDE: MLA: (Author Page). APA: (Author, Year).`, url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
+    }
     const calcMatch = q.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
     if (calcMatch) {
         const n1 = parseInt(calcMatch[1]); const op = calcMatch[2]; const n2 = parseInt(calcMatch[3]);
         let r = (op==='x'||op==='*')?n1*n2 : (op==='+')?n1+n2 : (op==='-')?n1-n2 : n1/n2;
         return { text: `RESULT: ${n1} ${op} ${n2} = ${r}` };
     }
-    if (q.includes("cite") || q.includes("source")) return { text: "CITE GUIDE: MLA: (Author Page). APA: (Author, Year).", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
 
-    // 3. IMPROVED UNIVERSAL SEARCH
-    output.textContent += "CONSULTING ARCHIVES...\n";
-    
-    // Better cleaning: remove "who was the", "what is a", etc.
+    // --- 3. WIKIPEDIA RESEARCH (The Fallback) ---
+    output.textContent += `CONSULTING SECURE ARCHIVES (Entry #${sessionQueries})...\n`;
     let clean = q.replace(/who was the|who is|what is|where is|tell me about|search for/g, "").trim();
     
-    // Special fix for numbers: change "1st" to "first" for better Wikipedia matching
-    clean = clean.replace("1st", "first").replace("2nd", "second");
-
     const data = await searchWikipedia(clean || q);
     
     if (data && data.extract) {
-        return { text: `ARCHIVE LOG: ${data.extract}`, url: data.content_urls?.desktop.page };
+        return { 
+            text: `ARCHIVE LOG #${sessionQueries}: ${data.extract}`, 
+            url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${data.title}` 
+        };
     }
-    return { text: "I couldn't find a direct record. Try being more specific with names or dates." };
+
+    return { text: "I couldn't find a direct record. Try using a more specific name or topic." };
 }
 
 
