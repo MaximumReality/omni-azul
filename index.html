@@ -5,119 +5,164 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mochkil & Azul Research Lab</title>
 <style>
-  body {
-    background: #050505;
-    color: #a2d2ff;
-    font-family: monospace;
+body {
     margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-  }
-  #console {
-    width: 100%;
-    height: 80vh;
-    overflow-y: auto;
-    padding: 15px;
-    border-bottom: 2px solid #00d4ff;
-    background: #10101a;
-  }
-  #input-area {
-    width: 100%;
+    font-family: 'Courier New', monospace;
+    background: #0b0b0f;
+    color: #fff;
     display: flex;
-    justify-content: center;
-    padding: 10px;
-    background: #0b0b12;
-  }
-  #question {
-    width: 80%;
+    flex-direction: column;
+    height: 100vh;
+}
+header {
+    background: #111;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #ff00ff;
+}
+header h1 {
+    font-size: 1.2rem;
+    color: #ff00ff;
+}
+header select {
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    background: #222;
+    color: #fff;
+    border: 1px solid #ff00ff;
+    border-radius: 5px;
+}
+#console {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #111;
+}
+.message {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease-out;
+}
+.mochkil { background: #333; color: #ffb347; align-self: flex-start; }
+.azul { background: #222244; color: #7fdbff; align-self: flex-start; }
+.user { background: #555; color: #fff; align-self: flex-end; }
+input[type=text] {
+    width: calc(100% - 100px);
     padding: 10px;
     font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid #a2d2ff;
-    background: #050505;
-    color: #a2d2ff;
-  }
-  .answer {
-    margin-top: 10px;
-    padding: 8px;
-    background: #1b1b2d;
-    border-left: 3px solid #ff9900;
-    animation: fadeIn 0.6s;
-  }
-  @keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
-  }
-  .character {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 80px;
-  }
+    border-radius: 5px;
+    border: none;
+    margin: 10px;
+}
+button {
+    padding: 10px 15px;
+    font-size: 1rem;
+    margin-right: 10px;
+    border-radius: 5px;
+    border: none;
+    background: #ff00ff;
+    color: #fff;
+    cursor: pointer;
+}
+button:hover { background: #ff77ff; }
+@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
 </style>
 </head>
 <body>
 
-<div id="console">
-  <div class="answer">✨ Welcome to Mochkil & Azul Research Lab! Ask me anything. ✨</div>
-</div>
+<header>
+    <h1>Mochkil & Azul Research Lab</h1>
+    <select id="botSelector">
+        <option value="mochkil">Mochkil</option>
+        <option value="azul">Azul</option>
+    </select>
+</header>
 
-<div id="input-area">
-  <input type="text" id="question" placeholder="Type your question here...">
-</div>
+<div id="console"></div>
 
-<img src="mochkil.png" class="character" id="mochkil">
+<div style="display:flex; padding:10px; background:#111; border-top:2px solid #ff00ff;">
+    <input type="text" id="userInput" placeholder="Ask a question...">
+    <button onclick="askQuestion()">Ask</button>
+    <button onclick="clearConsole()">Clear</button>
+</div>
 
 <script>
 const consoleEl = document.getElementById('console');
-const questionInput = document.getElementById('question');
-const mochkil = document.getElementById('mochkil');
+const botSelector = document.getElementById('botSelector');
+const userInput = document.getElementById('userInput');
 
-// Helper: Scroll console to bottom
-function scrollConsole() {
-  consoleEl.scrollTop = consoleEl.scrollHeight;
+// --- Display message ---
+function displayMessage(text, type) {
+    const div = document.createElement('div');
+    div.className = 'message ' + type;
+    div.innerHTML = text;
+    consoleEl.appendChild(div);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
-// Fetch Wikipedia summary
-async function fetchWiki(query) {
-  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    return data.extract || "Sorry, I couldn't find anything on that.";
-  } catch {
-    return "Oops! Something went wrong while fetching data.";
-  }
+// --- Clear console ---
+function clearConsole() {
+    consoleEl.innerHTML = '';
 }
 
-// Handle question submission
-async function handleQuestion(e) {
-  if (e.key === 'Enter') {
-    const question = questionInput.value.trim();
-    if (!question) return;
-    
-    // Show the question in console
-    const qDiv = document.createElement('div');
-    qDiv.className = 'answer';
-    qDiv.innerHTML = `💬 <strong>You asked:</strong> ${question}`;
-    consoleEl.appendChild(qDiv);
-    
-    // Animate Mochkil
-    mochkil.style.transform = `translateX(${Math.random()*50 - 25}px) translateY(${Math.random()*-30}px)`;
-    
-    // Fetch answer
-    const answerText = await fetchWiki(question);
-    const aDiv = document.createElement('div');
-    aDiv.className = 'answer';
-    aDiv.innerHTML = `🔹 <strong>Mochkil says:</strong> ${answerText}`;
-    consoleEl.appendChild(aDiv);
-    
-    scrollConsole();
-    questionInput.value = '';
-  }
+// --- Fetch answer from Wikipedia ---
+async function fetchWikipedia(query) {
+    const api = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+    try {
+        const response = await fetch(api);
+        if(!response.ok) throw new Error('Not found');
+        const data = await response.json();
+        return data.extract || "Sorry, no summary available.";
+    } catch(e) {
+        return "I couldn't find that on Wikipedia.";
+    }
 }
 
-questionInput.addEventListener('keydown', handleQuestion);
+// --- Fetch random NASA image & info ---
+async function fetchNASA() {
+    const api = 'https://images-api.nasa.gov/search?q=space&media_type=image';
+    try {
+        const response = await fetch(api);
+        const data = await response.json();
+        const items = data.collection.items;
+        if(items.length === 0) return "No NASA images found.";
+        const random = items[Math.floor(Math.random() * items.length)];
+        const title = random.data[0].title;
+        const img = random.links[0].href;
+        return `🚀 <b>${title}</b><br><img src="${img}" style="max-width:300px; margin-top:5px;">`;
+    } catch(e) {
+        return "NASA API error.";
+    }
+}
+
+// --- Ask question ---
+async function askQuestion() {
+    const question = userInput.value.trim();
+    if(!question) return;
+    displayMessage(question, 'user');
+    userInput.value = '';
+    
+    const bot = botSelector.value;
+    displayMessage('Thinking...', bot);
+    
+    let answer = '';
+    if(bot === 'mochkil') {
+        // Mochkil gives Wikipedia-based answer
+        answer = await fetchWikipedia(question);
+    } else if(bot === 'azul') {
+        // Azul gives NASA fun fact for space related or Wikipedia otherwise
+        if(question.toLowerCase().includes('space') || question.toLowerCase().includes('planet') || question.toLowerCase().includes('moon')) {
+            answer = await fetchNASA();
+        } else {
+            answer = await fetchWikipedia(question);
+        }
+    }
+    displayMessage(answer, bot);
+}
 </script>
 
 </body>
