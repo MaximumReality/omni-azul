@@ -94,34 +94,21 @@ let sessionNotes = "";
 const triviaFacts = [
     "QUANTUM: Atoms are 99.9999% empty space. The whole human race could fit in a sugar cube.",
     "ANATOMY: Your blood vessels could circle the Earth 4 times if laid end-to-end.",
-    "QUANTUM: Particles can exist in two places at once until observed (Superposition).",
-    "ANATOMY: The jaw muscle (Masseter) is the strongest muscle relative to its size.",
-    "QUANTUM: Quantum tunneling allows particles to pass through walls; it's why the Sun shines.",
-    "ANATOMY: Your stomach acid is strong enough to dissolve stainless steel.",
     "SPACE: One day on Venus is longer than its entire year.",
-    "HISTORY: The word 'Salary' comes from the Roman word for 'Salt' (Salarium).",
-    "SPACE: There are more trees on Earth than stars in the Milky Way galaxy.",
     "PHYSICS: Light takes 8 minutes and 20 seconds to travel from the Sun to Earth.",
-    "CYBERNETICS: The first computer 'bug' was an actual moth trapped in a relay in 1947.",
-    "SPACE: Neutron stars are so dense that a teaspoon of their material would weigh 6 billion tons.",
-    "PHYSICS: Time moves slower the closer you are to a massive object (Time Dilation).",
-    "ANATOMY: The human brain operates on about 20 watts of power—enough to light a dim LED.",
-    "QUANTUM: Entangled particles stay connected across the universe; changing one affects the other instantly."
+    "ANATOMY: The human brain operates on about 20 watts of power."
 ];
 
 async function typeText(text, url = null, geo = null) {
     let messageSpan = document.createElement("div"); 
     messageSpan.style.marginBottom = "15px";
     output.appendChild(messageSpan);
-
     let displayText = geo ? `${text}\nCOORDINATES: ${geo}` : text;
-    
     for (let char of displayText) {
         messageSpan.textContent += char; 
         output.scrollTop = output.scrollHeight;
         await new Promise(r => setTimeout(r, 15));
     }
-
     if (url) {
         const linkAnchor = document.createElement("a");
         linkAnchor.href = url;
@@ -130,29 +117,23 @@ async function typeText(text, url = null, geo = null) {
         linkAnchor.style.display = "block";
         linkAnchor.style.marginTop = "8px";
         linkAnchor.style.color = "#fff";
-        linkAnchor.style.fontSize = "0.85rem";
         messageSpan.appendChild(linkAnchor);
     }
-    
     output.scrollTop = output.scrollHeight;
 }
 
 async function searchWiki(query) {
     try {
-        let cleanQuery = query.replace(/how many|what is|where is|tell me about|who was|define|definition of/gi, "").trim();
+        let cleanQuery = query.replace(/how many|what is|where is|define/gi, "").trim();
         const sUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery)}&format=json&origin=*&srlimit=5`;
         const sRes = await fetch(sUrl);
         const sData = await sRes.json();
-        
         if (sData.query.search.length > 0) {
             let resultIndex = 0;
-            // BLACKLIST added here to avoid culinary terms like 'tripe'
-            const blacklist = ["phrase", "idiom", "exclamation", "song", "album", "film", "fictional", "tripe", "recipe", "cuisine"];
-            
+            const blacklist = ["phrase", "idiom", "tripe", "recipe", "cuisine", "song"];
             for(let i=0; i < sData.query.search.length; i++) {
-                let snippet = sData.query.search[i].snippet.toLowerCase();
                 let title = sData.query.search[i].title.toLowerCase();
-                if (!blacklist.some(word => snippet.includes(word) || title.includes(word))) {
+                if (!blacklist.some(word => title.includes(word))) {
                     resultIndex = i;
                     break;
                 }
@@ -169,38 +150,26 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
-    // 1. CORE BIOLOGY OVERRIDE (For Students)
+    // 1. CORE BIOLOGY OVERRIDE
     if (val.includes("how many stomachs") && val.includes("cow")) {
         return { 
-            text: "Cows have ONE stomach with FOUR distinct compartments: the Rumen, Reticulum, Omasum, and Abomasum. This allows them to digest tough plant fibers through fermentation.",
+            text: "Cows have ONE stomach with FOUR distinct compartments: the Rumen, Reticulum, Omasum, and Abomasum. They are 'ruminants,' meaning they chew cud to break down tough cellulose.",
             url: "https://en.wikipedia.org/wiki/Ruminant"
         };
     }
 
     // 2. MATH LAYER
-    if (val.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/)) {
-        const math = val.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
+    const math = val.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
+    if (math) {
         const n1=parseInt(math[1]), op=math[2], n2=parseInt(math[3]);
         let r = (op==='x'||op==='*')?n1*n2 : (op==='+')?n1+n2 : (op==='-')?n1-n2 : n1/n2;
         return { text: `RESULT: ${r}` };
     }
 
-    // ... (rest of your existing handleQuery logic)
-}
-
-
-    if (val.startsWith("define ") || val.startsWith("definition of ")) {
-        const word = val.replace("define ", "").replace("definition of ", "");
-        const data = await searchWiki(word);
-        if (data) return { text: `GLOSSARY [${data.title}]: ${data.extract}`, url: data.content_urls?.desktop.page };
-    }
-
-    if (val.includes("cite")) return { text: "CITATIONS: Use MLA or APA format. Link provided.", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
-
+    // 3. WIKIPEDIA RESEARCH
     const status = document.createElement("div");
     status.textContent = "AZUL: ANALYZING DATABASE...";
     output.appendChild(status);
-    
     const data = await searchWiki(val);
     status.remove();
 
@@ -208,7 +177,7 @@ async function handleQuery(q) {
         let coords = data.coordinates ? `${data.coordinates.lat.toFixed(4)}, ${data.coordinates.lon.toFixed(4)}` : null;
         return { text: data.extract, url: data.content_urls?.desktop.page, geo: coords };
     }
-    return { text: "AZUL: Data insufficient. Please refine parameters." };
+    return { text: "AZUL: Record not found. Please refine search parameters." };
 }
 
 input.addEventListener('keydown', async (e) => {
@@ -216,18 +185,17 @@ input.addEventListener('keydown', async (e) => {
         const val = input.value;
         if (!val) return;
         input.value = "";
-        
         const userLine = document.createElement("div");
         userLine.style.color = "white";
         userLine.textContent = `> RESEARCH_INPUT: ${val}`;
         output.appendChild(userLine);
         
-        // Corrected Biology Trigger
-        if (val.includes("cow") && val.includes("stomach")) {
+        if (val.toLowerCase().includes("cow") && val.toLowerCase().includes("stomach")) {
             const imgDiv = document.createElement("div");
             imgDiv.className = "diagram-note";
-            imgDiv.innerHTML = "AZUL: BIOLOGICAL DIAGRAM LOADED - RUMINANT SYSTEM<br>";
+            imgDiv.innerHTML = "AZUL: BIOLOGICAL DIAGRAM LOADED - RUMINANT SYSTEM";
             output.appendChild(imgDiv);
+            
         }
 
         const res = await handleQuery(val);
