@@ -124,14 +124,14 @@ function toggleAmber() {
 }
 
 async function typeText(text, url = null, geo = null) {
-    // TRIGGER IDLE STATE WHILE TALKING
     azulSprite.src = "idle_azul.png";
-    
     let messageSpan = document.createElement("div"); 
     messageSpan.style.marginBottom = "15px";
     output.appendChild(messageSpan);
     
-    let fullText = geo ? `${text}\n\nCOORDINATES: ${geo}` : text;
+    // Format coordinates if present
+    let displayGeo = geo ? `\n\nCOORDINATES: ${geo}` : "";
+    let fullText = text + displayGeo;
     
     for (let char of fullText) {
         messageSpan.textContent += char; 
@@ -149,15 +149,14 @@ async function typeText(text, url = null, geo = null) {
         messageSpan.appendChild(linkAnchor);
     }
     
-    // BACK TO WAITING
     azulSprite.src = "waiting_azul.png";
     output.scrollTop = output.scrollHeight;
 }
 
 async function searchWiki(query) {
-    // TRIGGER HOVER STATE WHILE SEARCHING
     azulSprite.src = "hover-azul.png";
     try {
+        // 1. Initial search to find the most relevant title
         const sUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
         const sRes = await fetch(sUrl);
         const sData = await sRes.json();
@@ -165,12 +164,17 @@ async function searchWiki(query) {
         if (sData.query && sData.query.search.length > 0) {
             const title = sData.query.search[0].title;
             
-            // Fetching text AND coordinates
-            const detailUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts|coordinates|info&exintro&explaintext&titles=${encodeURIComponent(title)}&inprop=url&format=json&origin=*`;
-            const dRes = await fetch(detailUrl);
-            const dData = await dRes.json();
-            const pageId = Object.keys(dData.query.pages)[0];
-            const page = dData.query.pages[pageId];
+            // 2. GET PRECISE SUMMARY (Better for science/general questions)
+            const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
+            const sumRes = await fetch(sumUrl);
+            const sumData = await sumRes.json();
+
+            // 3. GET COORDINATES (Specifically for locations)
+            const coordUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=${encodeURIComponent(title)}&format=json&origin=*`;
+            const cRes = await fetch(coordUrl);
+            const cData = await cRes.json();
+            const pageId = Object.keys(cData.query.pages)[0];
+            const page = cData.query.pages[pageId];
 
             let coords = null;
             if (page.coordinates) {
@@ -178,9 +182,9 @@ async function searchWiki(query) {
             }
 
             return { 
-                title: page.title, 
-                extract: page.extract, 
-                url: page.fullurl,
+                title: sumData.title, 
+                extract: sumData.extract, 
+                url: sumData.content_urls.desktop.page,
                 geo: coords
             };
         }
@@ -191,11 +195,8 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
-    // 1. CITATION / PURDUE ROUTE
     if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
-        // TRIGGER FLYING STATE FOR THINKING
         azulSprite.src = "flying-azul-front-facing.png";
-        
         if ((val === "cite" || val === "cite this") && lastResult) {
             const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
             return { text: `MLA CITATION:\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`, url: lastResult.url };
@@ -206,17 +207,6 @@ async function handleQuery(q) {
         };
     }
 
-    // 2. NASA / SPACE ROUTE
-    if (val.includes("nasa") || val.includes("space station")) {
-        azulSprite.src = "flying-azul-front-facing.png";
-        const data = await searchWiki(val);
-        return {
-            text: data ? data.extract : "Accessing NASA Digital Archives...",
-            url: "https://www.nasa.gov"
-        };
-    }
-
-    // 3. GENERAL SEARCH
     const data = await searchWiki(val);
     if (data) {
         lastResult = { title: data.title, url: data.url };
@@ -254,6 +244,7 @@ function showTrivia() {
 
 window.onload = () => typeText("OMNI-AZUL v1.2 ONLINE. CARD CATALOG LOADED.");
 </script>
+
 
 
 
