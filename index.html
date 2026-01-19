@@ -107,20 +107,43 @@ const triviaFacts = [
     "QUANTUM: Quantum tunneling allows particles to pass through walls; it's why the Sun shines.",
     "ANATOMY: Your stomach acid is strong enough to dissolve stainless steel.",
     "SPACE: One day on Venus is longer than its entire year.",
-    "HISTORY: The word 'Salary' comes from the Roman word for 'Salt' (Salarium)."
+    "HISTORY: The word 'Salary' comes from the Roman word for 'Salt' (Salarium).",
+    "SPACE: There are more trees on Earth than stars in the Milky Way galaxy.",
+    "PHYSICS: Light takes 8 minutes and 20 seconds to travel from the Sun to Earth.",
+    "CYBERNETICS: The first computer 'bug' was an actual moth trapped in a relay in 1947.",
+    "SPACE: Neutron stars are so dense that a teaspoon of their material would weigh 6 billion tons.",
+    "PHYSICS: Time moves slower the closer you are to a massive object (Time Dilation).",
+    "ANATOMY: The human brain operates on about 20 watts of power—enough to light a dim LED.",
+    "QUANTUM: Entangled particles stay connected across the universe; changing one affects the other instantly."
 ];
 
+
 async function typeText(text, url = null, geo = null) {
+    let messageSpan = document.createElement("div"); 
+    messageSpan.style.marginBottom = "15px";
+    output.appendChild(messageSpan);
+
     let displayText = geo ? `${text}\nCOORDINATES: ${geo}` : text;
+    
+    // Type out the main text content safely
     for (let char of displayText) {
-        output.textContent += char;
+        messageSpan.textContent += char; 
         output.scrollTop = output.scrollHeight;
         await new Promise(r => setTimeout(r, 15));
     }
+
+    // Append the link as HTML after typing finishes
     if (url) {
-        output.innerHTML += `<br><a href="${url}" target="_blank">[VIEW ARCHIVE]</a>`;
+        const linkAnchor = document.createElement("a");
+        linkAnchor.href = url;
+        linkAnchor.target = "_blank";
+        linkAnchor.textContent = "[VIEW ARCHIVE]";
+        linkAnchor.style.display = "block"; // Put it on its own line
+        linkAnchor.style.marginTop = "5px";
+        linkAnchor.style.color = "#fff";
+        messageSpan.appendChild(linkAnchor);
     }
-    output.textContent += "\n\n";
+    
     output.scrollTop = output.scrollHeight;
 }
 
@@ -134,7 +157,7 @@ async function searchWiki(query) {
         const sUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
         const sRes = await fetch(sUrl);
         const sData = await sRes.json();
-        if (sData.query.search.length > 0) {
+        if (sData.query.search && sData.query.search.length > 0) {
             const title = sData.query.search[0].title;
             const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
             const res = await fetch(sumUrl);
@@ -156,8 +179,13 @@ async function handleQuery(q) {
 
     if (val.includes("cite")) return { text: "CITATIONS: MLA (Author Page) or APA (Author, Year). Refer to Purdue OWL for details.", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
 
-    output.textContent += "OMNI-LINK SEARCHING...\n";
+    const status = document.createElement("div");
+    status.textContent = "OMNI-LINK SEARCHING...";
+    output.appendChild(status);
+    
     const data = await searchWiki(val);
+    status.remove(); 
+
     if (data && data.extract) {
         let coords = null;
         if (data.coordinates) {
@@ -173,7 +201,11 @@ input.addEventListener('keydown', async (e) => {
         const val = input.value;
         if (!val) return;
         input.value = "";
-        output.textContent += `> ${val}\n`;
+        
+        const userLine = document.createElement("div");
+        userLine.textContent = `> ${val}`;
+        output.appendChild(userLine);
+        
         const res = await handleQuery(val);
         sessionNotes += `[${val}] ${res.text.substring(0,35)}...\n`;
         await typeText(`AZUL: ${res.text}`, res.url, res.geo);
@@ -182,5 +214,7 @@ input.addEventListener('keydown', async (e) => {
 
 window.onload = () => typeText("OMNI-AZUL PROTOCOL ACTIVE. AWAITING INPUT.");
 </script>
+
+
 </body>
 </html>
