@@ -3,78 +3,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Azul Prototype</title>
+<title>Azul Helper Terminal</title>
 <style>
-  body { background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; margin:0; }
-  #azul-container { position: absolute; bottom: 50px; left: 50px; width: 150px; height: 150px; }
-  #azul-container img { width: 100%; height: 100%; transition: all 1s ease; }
-
-  .link-btn {
-    display: inline-block; padding: 10px 15px; margin: 20px; background: #222; border: 2px solid #0ff;
-    border-radius: 10px; cursor: pointer; transition: background 0.2s;
+  /* --- Terminal & CRT Style --- */
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #000;
+    font-family: 'Courier New', monospace;
+    color: #00ff00;
+    overflow: hidden;
   }
-  .link-btn:hover { background: #0ff; color: #000; }
+
+  #terminal {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  #output {
+    white-space: pre-wrap;
+    line-height: 1.3em;
+    overflow-y: auto;
+    max-height: 80%;
+    padding-right: 10px;
+  }
+
+  #inputBar {
+    position: absolute;
+    bottom: 20px;
+    width: calc(100% - 40px);
+    display: flex;
+    align-items: center;
+  }
+
+  #userInput {
+    flex-grow: 1;
+    background: #000;
+    border: none;
+    border-bottom: 1px solid #00ff00;
+    color: #00ff00;
+    font-family: monospace;
+    font-size: 1rem;
+    padding: 5px;
+    outline: none;
+  }
+
+  #enterBtn {
+    background: #000;
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    padding: 5px 10px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-family: monospace;
+  }
+
+  /* --- Scanlines overlay --- */
+  #scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+      rgba(0,0,0,0.2) 0 1px,
+      rgba(0,0,0,0) 1px 3px
+    );
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* --- Azul Sprites --- */
+  #azulSprite {
+    position: absolute;
+    bottom: 60px;
+    right: 50px;
+    width: 120px;
+    z-index: 100;
+    transition: all 0.5s ease;
+  }
 </style>
 </head>
 <body>
 
-<div id="azul-container">
-  <img id="azul" src="waiting_azul.png" alt="Azul">
-</div>
+<div id="terminal">
+  <div id="output">Welcome to Azul Helper Terminal!\nAsk me anything about science, space, or coding.\n</div>
 
-<div style="position:absolute; top:50px; left:50px;">
-  <div class="link-btn" data-target="answer1">Ask about NASA</div>
-  <div class="link-btn" data-target="answer2">Ask about Math</div>
-  <div class="link-btn" data-target="answer3">Ask about Coding</div>
-</div>
+  <div id="inputBar">
+    <input type="text" id="userInput" placeholder="Type your question...">
+    <button id="enterBtn">ENTER</button>
+  </div>
 
-<div id="answers" style="position:absolute; top:200px; left:50px; width:400px;">
-  <div id="answer1" style="margin-bottom:15px; color:#0ff;"></div>
-  <div id="answer2" style="margin-bottom:15px; color:#0f0;"></div>
-  <div id="answer3" style="margin-bottom:15px; color:#ff0;"></div>
+  <img id="azulSprite" src="waiting_azul.png" alt="Azul Helper">
+  <div id="scanlines"></div>
 </div>
 
 <script>
-const azul = document.getElementById('azul');
-const container = document.getElementById('azul-container');
-const links = document.querySelectorAll('.link-btn');
+const output = document.getElementById('output');
+const input = document.getElementById('userInput');
+const button = document.getElementById('enterBtn');
+const azul = document.getElementById('azulSprite');
 
-// Default positions
-const defaultPos = { left: 50, bottom: 50 };
-
-// Move Azul function
-function moveAzul(targetElem) {
-  const rect = targetElem.getBoundingClientRect();
-  const containerRect = container.getBoundingClientRect();
-
-  // Start flying
-  azul.src = 'flying-azul-front-facing.png';
-
-  // Animate to target (centered above)
-  const targetX = rect.left - containerRect.width / 2 + rect.width / 2;
-  const targetY = window.innerHeight - rect.top; // from bottom
-  container.style.left = targetX + 'px';
-  container.style.bottom = targetY + 'px';
-
-  // After flying, hover
-  setTimeout(() => {
-    azul.src = 'hover-azul.png';
-    // Display fake answer
-    const answerBox = document.getElementById(targetElem.dataset.target);
-    answerBox.textContent = `💡 Azul says: Here's some info about ${targetElem.textContent.replace('Ask about ','')}!`;
-  }, 1000);
-
-  // Return to default after 3s hover
-  setTimeout(() => {
-    azul.src = 'waiting_azul.png';
-    container.style.left = defaultPos.left + 'px';
-    container.style.bottom = defaultPos.bottom + 'px';
-  }, 4000);
+// --- Helper: type text like terminal ---
+function typeText(text, delay=25) {
+    return new Promise(resolve => {
+        let i = 0;
+        const interval = setInterval(() => {
+            output.textContent += text[i];
+            output.scrollTop = output.scrollHeight;
+            i++;
+            if(i >= text.length) {
+                clearInterval(interval);
+                output.textContent += "\n\n";
+                resolve();
+            }
+        }, delay);
+    });
 }
 
-// Event listeners
-links.forEach(link => {
-  link.addEventListener('click', () => moveAzul(link));
+// --- Function to fetch answer from API (NASA example) ---
+async function getAnswer(query) {
+    // Placeholder: you can plug in real APIs like NASA Open APIs
+    const fallbackAnswers = {
+        "moon": "The Moon is Earth's only natural satellite. It is about 384,400 km away.",
+        "mars": "Mars is the fourth planet from the Sun. It's known as the Red Planet.",
+        "azul": "Azul is your helper. I can give you science and coding info!"
+    };
+
+    // Simple keyword search for prototype
+    for(const key in fallbackAnswers) {
+        if(query.toLowerCase().includes(key)) return fallbackAnswers[key];
+    }
+
+    // If nothing matches, generic response
+    return "Hmm... I don't have data on that yet. Try asking something else!";
+}
+
+// --- Animate Azul sprite transitions ---
+function azulTransition(state) {
+    switch(state) {
+        case 'idle':
+            azul.src = 'idle_azul.png';
+            break;
+        case 'waiting':
+            azul.src = 'waiting_azul.png';
+            break;
+        case 'flying':
+            azul.src = 'flying-azul-front-facing.png';
+            break;
+        case 'hover':
+            azul.src = 'hover-azul.png';
+            break;
+    }
+}
+
+// --- Main interaction ---
+async function handleQuery() {
+    const question = input.value.trim();
+    if(!question) return;
+    output.textContent += "> " + question + "\n";
+    input.value = "";
+
+    azulTransition('flying');
+    await new Promise(r => setTimeout(r, 800)); // simulate flying
+    azulTransition('waiting');
+
+    const answer = await getAnswer(question);
+    await typeText(answer);
+
+    azulTransition('hover');
+    await new Promise(r => setTimeout(r, 1500));
+    azulTransition('idle');
+}
+
+// --- Event Listeners ---
+button.addEventListener('click', handleQuery);
+input.addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') handleQuery();
 });
 </script>
 
