@@ -3,27 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Azul: University Study Partner</title>
+<title>Azul: Study Partner Pro</title>
 <style>
   :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); }
   body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
-  
   #scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 100; opacity: 0.3; }
-  
   #terminal { position: relative; width: 100%; height: 100dvh; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
-  
   #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 90px; text-shadow: 0 0 5px var(--glow-color); }
-  
-  /* Link Styling */
-  a { color: #fff; text-decoration: underline; cursor: pointer; }
-
-  #inputBar { position: fixed; bottom: 20px; left: 20px; width: calc(100% - 160px); display: flex; background: rgba(0,0,0,0.9); border-top: 1px solid var(--terminal-green); padding-top: 10px; z-index: 10; }
-  
+  a { color: #fff; text-decoration: underline; font-weight: bold; }
+  #inputBar { position: fixed; bottom: 20px; left: 20px; width: calc(100% - 160px); display: flex; background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); padding-top: 10px; z-index: 10; }
   #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
-  
   #azulContainer { position: fixed; bottom: 20px; right: 20px; width: 120px; transition: all 0.5s ease; z-index: 20; }
   #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
-  
   .bobbing { animation: bob 3s ease-in-out infinite; }
   @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   .flying-fx { animation: shake 0.1s infinite; }
@@ -34,10 +25,7 @@
 <div id="scanlines"></div>
 <div id="terminal">
   <div id="output"></div>
-  <div id="inputBar">
-    <span style="margin-right:10px;">></span>
-    <input type="text" id="userInput" autofocus autocomplete="off" spellcheck="false">
-  </div>
+  <div id="inputBar"><span style="margin-right:10px;">></span><input type="text" id="userInput" autofocus autocomplete="off"></div>
 </div>
 <div id="azulContainer" class="bobbing"><img id="azulSprite" src="waiting_azul.png"></div>
 
@@ -47,6 +35,7 @@ const input = document.getElementById('userInput');
 const azul = document.getElementById('azulSprite');
 const azulCont = document.getElementById('azulContainer');
 
+// --- Audio ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playBeep(freq) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -58,20 +47,18 @@ function playBeep(freq) {
     osc.start(); osc.stop(audioCtx.currentTime + 0.05);
 }
 
+// --- Typing ---
 async function typeText(text, isLink = false) {
     if (isLink) {
         const link = document.createElement('a');
-        link.href = text;
-        link.target = "_blank";
-        link.textContent = "[SOURCE ARCHIVE]";
-        output.appendChild(link);
-        output.innerHTML += "\n\n";
+        link.href = text; link.target = "_blank"; link.textContent = "[OPEN SOURCE ARCHIVE]";
+        output.appendChild(link); output.innerHTML += "\n\n";
     } else {
         for (let char of text) {
             output.textContent += char;
-            playBeep(400 + Math.random() * 200);
+            playBeep(450 + Math.random() * 150);
             output.scrollTop = output.scrollHeight;
-            await new Promise(r => setTimeout(r, 25));
+            await new Promise(r => setTimeout(r, 20));
         }
         output.textContent += "\n";
     }
@@ -86,93 +73,70 @@ function setAzul(state) {
     else if (state === 'hover') { azul.src = 'hover-azul.png'; azulCont.style.transform = 'translateY(-30px)'; }
 }
 
-// --- Updated Resilient Search ---
+// --- The Global Search Engine ---
 async function searchWikipedia(query) {
     try {
-        // Step 1: Try a direct summary
-        let url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-        let response = await fetch(url);
-        if (response.ok) return await response.json();
-
-        // Step 2: If direct fails, use 'Query' search to find the closest page title
-        let searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
-        let searchRes = await fetch(searchUrl);
-        let searchData = await searchRes.json();
-
-        if (searchData.query.search.length > 0) {
-            let topTitle = searchData.query.search[0].title;
-            let retryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topTitle)}`;
-            let retryRes = await fetch(retryUrl);
-            return await retryRes.json();
+        // Search first to get the most relevant page title
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+        const sRes = await fetch(searchUrl);
+        const sData = await sRes.json();
+        
+        if (sData.query.search.length > 0) {
+            const title = sData.query.search[0].title;
+            const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+            const res = await fetch(summaryUrl);
+            return await res.json();
         }
-    } catch (e) { console.error(e); return null; }
+    } catch (e) { return null; }
     return null;
 }
 
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
 
-    // 1. CHEMISTRY MODE (e.g., "What is Gold", "Atomic number of Oxygen")
-    const elements = { 
-        "gold": "Au, Atomic #79. A dense, soft, yellow metal.", 
-        "oxygen": "O, Atomic #8. Essential for life and combustion.",
-        "hydrogen": "H, Atomic #1. The most abundant element in the universe."
-    };
-    for (let e in elements) {
-        if (q.includes(e)) return { text: `SCIENCE LOG: ${elements[e]}` };
-    }
-
-    // 2. MATH & CITATIONS (Your working logic)
-    if (q.includes("cite") || q.includes("source") || q.includes("mla") || q.includes("apa")) {
-        return { text: "CITATION GUIDE: MLA: (Author Page). APA: (Author, Year). Use these for credit!", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
-    }
+    // 1. Math Calculator
     const calcMatch = q.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
     if (calcMatch) {
         const n1 = parseInt(calcMatch[1]); const op = calcMatch[2]; const n2 = parseInt(calcMatch[3]);
-        let res = (op === 'x' || op === '*') ? n1 * n2 : (op === '+') ? n1 + n2 : (op === '-') ? n1 - n2 : n1 / n2;
-        return { text: `CALCULATION: ${n1} ${op} ${n2} = ${res}.` };
+        let r = (op==='x'||op==='*')?n1*n2 : (op==='+')?n1+n2 : (op==='-')?n1-n2 : n1/n2;
+        return { text: `RESULT: ${n1} ${op} ${n2} = ${r}` };
     }
 
-    // 3. UNIVERSAL RESEARCH
-    output.textContent += `CONSULTING GLOBAL ARCHIVES...\n`;
-    let cleanQuery = q.replace(/how to|what is|tell me about|where is|search for/g, "").trim();
+    // 2. Academic Shortcuts
+    if (q.includes("solve for x") || q.includes("how to solve x")) return { text: "ALGEBRA TIP: To solve for x, isolate it by performing the opposite operation on both sides. Example: x + 5 = 10 -> x = 10 - 5.", url: "https://en.wikipedia.org/wiki/Algebra" };
+    if (q.includes("cite") || q.includes("source") || q.includes("mla") || q.includes("apa")) return { text: "CITE GUIDE: MLA: (Author Page). APA: (Author, Year). Chicago: Footnotes.", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
+    if (q.includes("cpr")) return { text: "EMERGENCY: Call 911. Push hard and fast in the center of the chest to the beat of 'Stayin Alive'.", url: "https://en.wikipedia.org/wiki/Cardiopulmonary_resuscitation" };
+
+    // 3. Global Archives
+    output.textContent += "CONSULTING ARCHIVES...\n";
+    let clean = q.replace(/how to|what is|where is|tell me about|search for/g, "").trim();
+    const data = await searchWikipedia(clean || q);
     
-    const data = await searchWikipedia(cleanQuery);
     if (data && data.extract) {
-        return { 
-            text: `WIKIPEDIA: ${data.extract}`, 
-            url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${data.title}` 
-        };
+        return { text: `ARCHIVE LOG: ${data.extract}`, url: data.content_urls?.desktop.page };
     }
-
-    return { text: "I couldn't find a direct file. Try being more specific or use a single keyword." };
+    return { text: "No specific record found. Try a different keyword." };
 }
-
-
 
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         const val = input.value.trim();
         if (!val) return;
         input.value = "";
-        output.textContent += `> ${val}\n`;
-        
+        output.textContent += `\n> ${val}\n`;
         setAzul('idle');
-        const result = await getAnswer(val);
-        
+        const res = await getAnswer(val);
         setAzul('flying');
         await new Promise(r => setTimeout(r, 600));
-        
         setAzul('hover');
-        await typeText(`AZUL: ${result.text}`);
-        if (result.url) await typeText(result.url, true);
-        
-        await new Promise(r => setTimeout(r, 1500));
+        await typeText(`AZUL: ${res.text}`);
+        if (res.url) await typeText(res.url, true);
+        await new Promise(r => setTimeout(r, 1000));
         setAzul('waiting');
     }
 });
 
-window.onload = () => typeText("STUDY MODE ACTIVE. RESEARCH ANY TOPIC OR SOLVE FOR X.");
+window.onload = () => typeText("STUDY PARTNER READY. SEARCH ARCHIVES OR SOLVE MATH.");
 </script>
 </body>
 </html>
