@@ -3,122 +3,121 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Cozy Console</title>
-
+<title>Mochkil & Azul Research Lab</title>
 <style>
-html, body {
+  body {
+    background: #050505;
+    color: #a2d2ff;
+    font-family: monospace;
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
+  }
+  #console {
     width: 100%;
-    height: 100%;
-    background: #1b1a17;
-    font-family: "Courier New", monospace;
-    color: #e8e3d8;
-}
-
-#screen {
+    height: 80vh;
+    overflow-y: auto;
+    padding: 15px;
+    border-bottom: 2px solid #00d4ff;
+    background: #10101a;
+  }
+  #input-area {
     width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, #2b2a25 0%, #12110f 70%);
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-#output {
-    white-space: pre-wrap;
-    line-height: 1.4;
-    min-height: 60%;
-}
-
-button {
-    background: #3a382f;
-    color: #f5f0e6;
-    border: 2px solid #5a574a;
-    padding: 12px 16px;
-    margin: 8px 6px 0 0;
-    font-family: inherit;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #4a473b;
-}
-
-.scanlines {
-    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background: #0b0b12;
+  }
+  #question {
+    width: 80%;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #a2d2ff;
+    background: #050505;
+    color: #a2d2ff;
+  }
+  .answer {
+    margin-top: 10px;
+    padding: 8px;
+    background: #1b1b2d;
+    border-left: 3px solid #ff9900;
+    animation: fadeIn 0.6s;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+  .character {
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(0,0,0,0.05),
-        rgba(0,0,0,0.05) 1px,
-        transparent 1px,
-        transparent 3px
-    );
-}
+    bottom: 10px;
+    right: 10px;
+    width: 80px;
+  }
 </style>
 </head>
-
 <body>
 
-<div id="screen">
-    <div id="output">Booting Cozy Console...
-System ready.
-Tap a button to begin.</div>
-
-    <button onclick="askMochkil()">ASK MOCHKIL</button>
-    <button onclick="askAzul()">ASK AZUL</button>
-    <button onclick="openVault()">OPEN THE VAULT</button>
+<div id="console">
+  <div class="answer">✨ Welcome to Mochkil & Azul Research Lab! Ask me anything. ✨</div>
 </div>
 
-<div class="scanlines"></div>
+<div id="input-area">
+  <input type="text" id="question" placeholder="Type your question here...">
+</div>
+
+<img src="mochkil.png" class="character" id="mochkil">
 
 <script>
-const output = document.getElementById("output");
+const consoleEl = document.getElementById('console');
+const questionInput = document.getElementById('question');
+const mochkil = document.getElementById('mochkil');
 
-function typeText(text) {
-    output.textContent = "";
-    let i = 0;
-    const interval = setInterval(() => {
-        output.textContent += text.charAt(i);
-        i++;
-        if (i >= text.length) clearInterval(interval);
-    }, 20);
+// Helper: Scroll console to bottom
+function scrollConsole() {
+  consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
-// --- KNOWLEDGE POOLS ---
-const mochkilLines = [
-    "🐭 Mochkil says:\nIf dinner goes wrong, add cheese and pretend it was the plan.",
-    "🐭 Mochkil says:\nCooking is just science that smells better.",
-    "🐭 Mochkil says:\nIf you mess up a recipe, congratulations — you invented one."
-];
-
-const azulLines = [
-    "🐱 Azul says:\nComputers don't think. They follow instructions very seriously.",
-    "🐱 Azul says:\nGravity is just space telling things where to sit.",
-    "🐱 Azul says:\nCuriosity is a renewable resource."
-];
-
-const vaultLines = [
-    "📚 The Vault opens:\nDid you know old computers used sound to store data?",
-    "📚 The Vault opens:\nA mistake is just information arriving late.",
-    "📚 The Vault opens:\nYou are allowed to learn slowly."
-];
-
-// --- BUTTON HANDLERS ---
-function askMochkil() {
-    typeText(mochkilLines[Math.floor(Math.random() * mochkilLines.length)]);
+// Fetch Wikipedia summary
+async function fetchWiki(query) {
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.extract || "Sorry, I couldn't find anything on that.";
+  } catch {
+    return "Oops! Something went wrong while fetching data.";
+  }
 }
 
-function askAzul() {
-    typeText(azulLines[Math.floor(Math.random() * azulLines.length)]);
+// Handle question submission
+async function handleQuestion(e) {
+  if (e.key === 'Enter') {
+    const question = questionInput.value.trim();
+    if (!question) return;
+    
+    // Show the question in console
+    const qDiv = document.createElement('div');
+    qDiv.className = 'answer';
+    qDiv.innerHTML = `💬 <strong>You asked:</strong> ${question}`;
+    consoleEl.appendChild(qDiv);
+    
+    // Animate Mochkil
+    mochkil.style.transform = `translateX(${Math.random()*50 - 25}px) translateY(${Math.random()*-30}px)`;
+    
+    // Fetch answer
+    const answerText = await fetchWiki(question);
+    const aDiv = document.createElement('div');
+    aDiv.className = 'answer';
+    aDiv.innerHTML = `🔹 <strong>Mochkil says:</strong> ${answerText}`;
+    consoleEl.appendChild(aDiv);
+    
+    scrollConsole();
+    questionInput.value = '';
+  }
 }
 
-function openVault() {
-    typeText(vaultLines[Math.floor(Math.random() * vaultLines.length)]);
-}
+questionInput.addEventListener('keydown', handleQuestion);
 </script>
 
 </body>
