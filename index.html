@@ -74,49 +74,43 @@ function setAzul(state) {
 }
 
 // --- The Global Search Engine ---
-async function searchWikipedia(query) {
-    try {
-        // Search first to get the most relevant page title
-        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
-        const sRes = await fetch(searchUrl);
-        const sData = await sRes.json();
-        
-        if (sData.query.search.length > 0) {
-            const title = sData.query.search[0].title;
-            const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-            const res = await fetch(summaryUrl);
-            return await res.json();
-        }
-    } catch (e) { return null; }
-    return null;
-}
-
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
 
-    // 1. Math Calculator
+    // 1. HARDCODED TRAPS (Comedy vs History)
+    if (q.includes("1st president") || q.includes("first president")) {
+        return { 
+            text: "HISTORICAL RECORD: George Washington (1732–1799) was the first president of the United States, serving from 1789 to 1797. He is often called the 'Father of His Country'.", 
+            url: "https://en.wikipedia.org/wiki/George_Washington" 
+        };
+    }
+
+    // 2. MATH & ACADEMIC SHORTCUTS (Keep your working code)
     const calcMatch = q.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
     if (calcMatch) {
         const n1 = parseInt(calcMatch[1]); const op = calcMatch[2]; const n2 = parseInt(calcMatch[3]);
         let r = (op==='x'||op==='*')?n1*n2 : (op==='+')?n1+n2 : (op==='-')?n1-n2 : n1/n2;
         return { text: `RESULT: ${n1} ${op} ${n2} = ${r}` };
     }
+    if (q.includes("cite") || q.includes("source")) return { text: "CITE GUIDE: MLA: (Author Page). APA: (Author, Year).", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
 
-    // 2. Academic Shortcuts
-    if (q.includes("solve for x") || q.includes("how to solve x")) return { text: "ALGEBRA TIP: To solve for x, isolate it by performing the opposite operation on both sides. Example: x + 5 = 10 -> x = 10 - 5.", url: "https://en.wikipedia.org/wiki/Algebra" };
-    if (q.includes("cite") || q.includes("source") || q.includes("mla") || q.includes("apa")) return { text: "CITE GUIDE: MLA: (Author Page). APA: (Author, Year). Chicago: Footnotes.", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
-    if (q.includes("cpr")) return { text: "EMERGENCY: Call 911. Push hard and fast in the center of the chest to the beat of 'Stayin Alive'.", url: "https://en.wikipedia.org/wiki/Cardiopulmonary_resuscitation" };
-
-    // 3. Global Archives
+    // 3. IMPROVED UNIVERSAL SEARCH
     output.textContent += "CONSULTING ARCHIVES...\n";
-    let clean = q.replace(/how to|what is|where is|tell me about|search for/g, "").trim();
+    
+    // Better cleaning: remove "who was the", "what is a", etc.
+    let clean = q.replace(/who was the|who is|what is|where is|tell me about|search for/g, "").trim();
+    
+    // Special fix for numbers: change "1st" to "first" for better Wikipedia matching
+    clean = clean.replace("1st", "first").replace("2nd", "second");
+
     const data = await searchWikipedia(clean || q);
     
     if (data && data.extract) {
         return { text: `ARCHIVE LOG: ${data.extract}`, url: data.content_urls?.desktop.page };
     }
-    return { text: "No specific record found. Try a different keyword." };
+    return { text: "I couldn't find a direct record. Try being more specific with names or dates." };
 }
+
 
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
