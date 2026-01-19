@@ -166,28 +166,45 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
-    if (val === "cite" || val === "citation") {
-        if (!lastResult) return { text: "No record in memory to cite." };
-        const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        const mla = `"${lastResult.title}." Wikipedia, Wikimedia Foundation, ${date}, ${lastResult.url}.`;
-        return { text: `MLA CITATION:\n${mla}` };
+    // 1. PURDUE OWL & CITATION ROUTE
+    if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa") || val.includes("purdue")) {
+        if ((val === "cite" || val === "cite this") && lastResult) {
+            const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const mla = `"${lastResult.title}." Wikipedia, Wikimedia Foundation, ${date}, ${lastResult.url}.`;
+            return { text: `MLA CITATION GENERATED:\n${mla}`, url: lastResult.url };
+        }
+        return { 
+            text: "CITATION PROTOCOL: For all academic formatting, refer to the Purdue Online Writing Lab (OWL). It is the recognized authority for MLA, APA, and Chicago styles.",
+            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
+        };
     }
 
+    // 2. NASA AUTHORITY ROUTE
+    if (val.includes("nasa") || val.includes("space station") || val.includes("mars") || val.includes("moon")) {
+        const data = await searchWiki(val);
+        return {
+            text: data ? data.extract : "Accessing NASA Digital Archives for research telemetry...",
+            url: "https://www.nasa.gov"
+        };
+    }
+
+    // 3. SPECIFIC CARD CATALOG CARDS
     if (val.includes("cow") && val.includes("stomach")) {
         lastResult = { title: "Ruminant", url: "https://en.wikipedia.org/wiki/Ruminant" };
-        return { text: "Cows have one stomach with four compartments: the Rumen, Reticulum, Omasum, and Abomasum.", url: lastResult.url };
+        return { text: "Cows are ruminants with four stomach compartments: the Rumen, Reticulum, Omasum, and Abomasum.", url: lastResult.url };
     }
     if (val.includes("jellyfish") && (val.includes("brain") || val.includes("nerve"))) {
         lastResult = { title: "Jellyfish", url: "https://en.wikipedia.org/wiki/Jellyfish" };
-        return { text: "Jellyfish do not have a brain. They utilize a decentralized 'nerve net' to sense light, touch, and temperature.", url: lastResult.url };
+        return { text: "Jellyfish lack a brain; they use a decentralized 'nerve net' to navigate their environment.", url: lastResult.url };
     }
 
+    // 4. GENERAL SEARCH
     const data = await searchWiki(val);
     if (data) {
         lastResult = { title: data.title, url: data.url };
         return { text: data.extract, url: data.url };
     }
-    return { text: "No academic record found. Refine query parameters." };
+    return { text: "No academic record found. Please refine your query." };
 }
 
 input.addEventListener('keydown', async (e) => {
@@ -195,7 +212,6 @@ input.addEventListener('keydown', async (e) => {
         const val = input.value;
         if (!val) return;
         input.value = "";
-        
         const line = document.createElement("div");
         line.style.color = "white";
         line.textContent = `> ${val}`;
@@ -206,7 +222,6 @@ input.addEventListener('keydown', async (e) => {
         output.appendChild(loadingLine);
         
         const res = await handleQuery(val);
-        
         output.removeChild(loadingLine);
         await typeText(`AZUL: ${res.text}`, res.url);
     }
@@ -219,5 +234,6 @@ function showTrivia() {
 
 window.onload = () => typeText("OMNI-AZUL v1.1 ONLINE. CARD CATALOG LOADED.");
 </script>
+
 </body>
 </html>
