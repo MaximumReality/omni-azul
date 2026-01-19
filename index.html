@@ -89,13 +89,13 @@
 <script>
 const output = document.getElementById('output');
 const input = document.getElementById('userInput');
+let lastResult = null; // Memory for the 'cite' command
 
 const triviaFacts = [
     "QUANTUM: Atoms are 99.9999% empty space.",
     "ANATOMY: Your blood vessels could circle the Earth 4 times.",
     "SPACE: One day on Venus is longer than its entire year.",
     "PHYSICS: Light takes 8m 20s to travel from the Sun to Earth.",
-    "ANATOMY: The human brain operates on about 20 watts of power.",
     "BIOLOGY: An octopus has three hearts and blue blood."
 ];
 
@@ -133,6 +133,7 @@ async function searchWiki(query) {
             const pageId = Object.keys(sData.query.pages)[0];
             const page = sData.query.pages[pageId];
             return {
+                title: page.title,
                 extract: page.extract,
                 url: page.fullurl
             };
@@ -141,36 +142,34 @@ async function searchWiki(query) {
     return null;
 }
 
-// 1. Add this variable at the top of your script with 'output' and 'input'
-let lastResult = null; 
-
-// 2. Update your handleQuery to save the 'lastResult'
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
-    // NEW: Automatic Citation Generator
-    if (val === "cite" || val === "cite this") {
-        if (!lastResult) return { text: "No active record in memory to cite. Please perform a search first." };
-        
+    // 1. CITATION GENERATOR
+    if (val === "cite" || val === "cite this" || val === "citation") {
+        if (!lastResult) return { text: "Azul: No active record in memory. Please search for a topic first." };
         const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const mla = `"${lastResult.title}." Wikipedia, Wikimedia Foundation, ${date}, ${lastResult.url}.`;
-        
-        return { text: `MLA CITATION:\n${mla}` };
+        return { text: `MLA CITATION GENERATED:\n${mla}` };
     }
 
-    // (Keep your existing Cow/Octopus/NASA logic here...)
-    
-    const data = await searchWiki(val);
-    if (data && data.extract) {
-        // We save the title and url for the 'cite' command
-        lastResult = { title: data.title || val.toUpperCase(), url: data.url };
-        return { text: data.extract, url: data.url };
+    // 2. CORE BIOLOGY ROUTING
+    if (val.includes("cow") && val.includes("stomach")) {
+        lastResult = { title: "Ruminant", url: "https://en.wikipedia.org/wiki/Ruminant" };
+        return { 
+            text: "Cows have one stomach with four specialized compartments: the Rumen, Reticulum, Omasum, and Abomasum.",
+            url: lastResult.url 
+        };
     }
-    return { text: "No academic record found." };
-}
+    if (val.includes("octopus") && val.includes("heart")) {
+        lastResult = { title: "Octopus", url: "https://en.wikipedia.org/wiki/Octopus" };
+        return {
+            text: "An octopus has three hearts: one systemic heart and two branchial hearts.",
+            url: lastResult.url
+        };
+    }
 
-
-    // 2. Math Layer
+    // 3. MATH
     const mathMatch = val.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
     if (mathMatch) {
         const n1=parseInt(mathMatch[1]), op=mathMatch[2], n2=parseInt(mathMatch[3]);
@@ -178,26 +177,10 @@ async function handleQuery(q) {
         return { text: `CALCULATION RESULT: ${r}` };
     }
 
-    // 3. Citation Authority
-    if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
-        return { 
-            text: "CITATION PROTOCOL: Refer to the Purdue Online Writing Lab (OWL) for universal standards for MLA, APA, and Chicago styles.",
-            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
-        };
-    }
-
-    // 4. Space/NASA Authority
-    if (val.includes("nasa") || val.includes("space station") || val.includes("mars")) {
-        const data = await searchWiki(val);
-        return {
-            text: data ? data.extract : "Accessing NASA Digital Archives...",
-            url: "https://www.nasa.gov"
-        };
-    }
-
-    // 5. General Search
+    // 4. GENERAL SEARCH
     const data = await searchWiki(val);
     if (data && data.extract) {
+        lastResult = { title: data.title, url: data.url };
         return { text: data.extract, url: data.url };
     }
     
