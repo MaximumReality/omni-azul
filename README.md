@@ -56,3 +56,6 @@ Omni-Azul is a specialized module of the **[Maximum Reality](https://maximumreal
 
 ---
 © 2026 Maximum Reality. System Status: **Online**.
+
+## ⚖️ License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
