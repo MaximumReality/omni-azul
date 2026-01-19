@@ -169,12 +169,25 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
+    // 1. CORE BIOLOGY OVERRIDE (For Students)
+    if (val.includes("how many stomachs") && val.includes("cow")) {
+        return { 
+            text: "Cows have ONE stomach with FOUR distinct compartments: the Rumen, Reticulum, Omasum, and Abomasum. This allows them to digest tough plant fibers through fermentation.",
+            url: "https://en.wikipedia.org/wiki/Ruminant"
+        };
+    }
+
+    // 2. MATH LAYER
     if (val.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/)) {
         const math = val.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
         const n1=parseInt(math[1]), op=math[2], n2=parseInt(math[3]);
         let r = (op==='x'||op==='*')?n1*n2 : (op==='+')?n1+n2 : (op==='-')?n1-n2 : n1/n2;
         return { text: `RESULT: ${r}` };
     }
+
+    // ... (rest of your existing handleQuery logic)
+}
+
 
     if (val.startsWith("define ") || val.startsWith("definition of ")) {
         const word = val.replace("define ", "").replace("definition of ", "");
