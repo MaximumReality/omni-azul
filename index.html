@@ -3,30 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Azul: Study Partner Pro</title>
+<title>Azul: Academic Partner</title>
 <style>
   :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); }
   body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
-  #scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 100; opacity: 0.3; }
+  #scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 100; opacity: 0.2; }
+  
+  /* Terminal UI */
   #terminal { position: relative; width: 100%; height: 100dvh; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
   #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 90px; text-shadow: 0 0 5px var(--glow-color); }
-  a { color: #fff; text-decoration: underline; font-weight: bold; }
-  #inputBar { position: fixed; bottom: 20px; left: 20px; width: calc(100% - 160px); display: flex; background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); padding-top: 10px; z-index: 10; }
+  #inputBar { position: fixed; bottom: 20px; left: 20px; width: calc(100% - 160px); display: flex; background: rgba(0,0,0,0.9); border-top: 1px solid var(--terminal-green); padding-top: 10px; z-index: 10; }
   #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
-  #azulContainer { position: fixed; bottom: 20px; right: 20px; width: 120px; transition: all 0.5s ease; z-index: 20; }
+  
+  /* Sidebar/Notebook */
+  #notebook { position: fixed; top: 0; right: -280px; width: 280px; height: 100%; background: #0a0a0a; border-left: 1px solid var(--terminal-green); transition: 0.3s; z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+  #notebook.open { right: 0; }
+  .note-item { border-bottom: 1px solid #222; padding: 10px 0; font-size: 0.85rem; color: #888; }
+  #toggleNotes { position: fixed; top: 10px; right: 10px; background: var(--terminal-green); color: black; border: none; padding: 8px 12px; font-weight: bold; z-index: 1001; cursor: pointer; }
+  .export-btn { background: #333; color: white; border: 1px solid white; padding: 5px; width: 100%; margin-top: 10px; cursor: pointer; }
+
+  /* Azul Sprite */
+  #azulContainer { position: fixed; bottom: 20px; right: 20px; width: 120px; transition: all 0.5s ease; z-index: 20; pointer-events: none; }
   #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
   .bobbing { animation: bob 3s ease-in-out infinite; }
   @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   .flying-fx { animation: shake 0.1s infinite; }
   @keyframes shake { 0% { transform: translate(1px, 1px); } 100% { transform: translate(-1px, -1px); } }
+  a { color: #fff; text-decoration: underline; font-weight: bold; }
 </style>
 </head>
 <body>
+
 <div id="scanlines"></div>
+<button id="toggleNotes" onclick="document.getElementById('notebook').classList.toggle('open')">NOTES</button>
+
+<div id="notebook">
+  <h2 style="color: var(--terminal-green); margin-top: 0;">STUDY LOG</h2>
+  <div id="notesList"></div>
+  <button class="export-btn" onclick="exportNotes()">EXPORT TO FILES</button>
+</div>
+
 <div id="terminal">
   <div id="output"></div>
-  <div id="inputBar"><span style="margin-right:10px;">></span><input type="text" id="userInput" autofocus autocomplete="off"></div>
+  <div id="inputBar"><span style="margin-right:10px;">></span><input type="text" id="userInput" autofocus autocomplete="off" spellcheck="false"></div>
 </div>
+
 <div id="azulContainer" class="bobbing"><img id="azulSprite" src="waiting_azul.png"></div>
 
 <script>
@@ -34,8 +55,11 @@ const output = document.getElementById('output');
 const input = document.getElementById('userInput');
 const azul = document.getElementById('azulSprite');
 const azulCont = document.getElementById('azulContainer');
+const notesList = document.getElementById('notesList');
 
-// --- Audio ---
+let sessionCount = 0;
+let fullLog = "";
+
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playBeep(freq) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -47,7 +71,6 @@ function playBeep(freq) {
     osc.start(); osc.stop(audioCtx.currentTime + 0.05);
 }
 
-// --- Typing ---
 async function typeText(text, isLink = false) {
     if (isLink) {
         const link = document.createElement('a');
@@ -56,13 +79,30 @@ async function typeText(text, isLink = false) {
     } else {
         for (let char of text) {
             output.textContent += char;
-            playBeep(450 + Math.random() * 150);
+            playBeep(400 + Math.random() * 200);
             output.scrollTop = output.scrollHeight;
             await new Promise(r => setTimeout(r, 20));
         }
         output.textContent += "\n";
     }
     output.scrollTop = output.scrollHeight;
+}
+
+function saveNote(q, a) {
+    fullLog += `Q: ${q}\nA: ${a}\n\n`;
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    item.innerHTML = `<strong>${q.toUpperCase()}</strong><br>${a.substring(0, 60)}...`;
+    notesList.prepend(item);
+}
+
+function exportNotes() {
+    const blob = new Blob([fullLog], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `azul_study_session_${new Date().toLocaleDateString()}.txt`;
+    a.click();
 }
 
 function setAzul(state) {
@@ -73,65 +113,47 @@ function setAzul(state) {
     else if (state === 'hover') { azul.src = 'hover-azul.png'; azulCont.style.transform = 'translateY(-30px)'; }
 }
 
-// --- The Global Search Engine ---
+async function searchWikipedia(query) {
+    try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+        const sRes = await fetch(searchUrl);
+        const sData = await sRes.json();
+        if (sData.query.search.length > 0) {
+            const title = sData.query.search[0].title;
+            const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+            const res = await fetch(sumUrl);
+            return await res.json();
+        }
+    } catch (e) { return null; }
+    return null;
+}
+
 async function getAnswer(query) {
     let q = query.toLowerCase().trim();
-    sessionQueries++;
+    sessionCount++;
 
-    // --- 1. THE KNOWLEDGE BASE (Local Overrides) ---
-    // This section stops Wikipedia from giving you comedy sketches for history questions!
-    const localFacts = {
-        "first president": {
-            text: "HISTORICAL RECORD: George Washington was the 1st U.S. President (1789–1797). He is famously known for leading the Continental Army and presiding over the Constitutional Convention.",
-            url: "https://en.wikipedia.org/wiki/George_Washington"
-        },
-        "king of morocco": {
-            text: "POLITICAL RECORD: The current King of Morocco is Mohammed VI. He ascended to the throne on July 23, 1999, following the death of his father, King Hassan II.",
-            url: "https://en.wikipedia.org/wiki/Mohammed_VI_of_Morocco"
-        },
-        "cheap flights": {
-            text: "TRAVEL TIP: To find cheap flights from America to Europe, experts suggest booking 3-6 months in advance, using 'Incognito Mode' to search, and checking hubs like London, Dublin, or Reykjavik.",
-            url: "https://www.google.com/travel/flights"
-        }
-    };
-
-    // Check if the query matches any of our local facts
-    for (let key in localFacts) {
-        if (q.includes(key)) {
-            return {
-                text: `[ENTRY #${sessionQueries}] ${localFacts[key].text}`,
-                url: localFacts[key].url
-            };
-        }
-    }
-
-    // --- 2. MATH & ACADEMIC SHORTCUTS ---
-    if (q.includes("cite") || q.includes("source")) {
-        return { text: `[ENTRY #${sessionQueries}] CITE GUIDE: MLA: (Author Page). APA: (Author, Year).`, url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
-    }
-    const calcMatch = q.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
-    if (calcMatch) {
-        const n1 = parseInt(calcMatch[1]); const op = calcMatch[2]; const n2 = parseInt(calcMatch[3]);
+    // 1. Math
+    const calc = q.match(/(\d+)\s*([x\*\+\-\/])\s*(\d+)/);
+    if (calc) {
+        const n1=parseInt(calc[1]), op=calc[2], n2=parseInt(calc[3]);
         let r = (op==='x'||op==='*')?n1*n2 : (op==='+')?n1+n2 : (op==='-')?n1-n2 : n1/n2;
-        return { text: `RESULT: ${n1} ${op} ${n2} = ${r}` };
+        return { text: `CALCULATION: ${n1} ${op} ${n2} = ${r}` };
     }
 
-    // --- 3. WIKIPEDIA RESEARCH (The Fallback) ---
-    output.textContent += `CONSULTING SECURE ARCHIVES (Entry #${sessionQueries})...\n`;
-    let clean = q.replace(/who was the|who is|what is|where is|tell me about|search for/g, "").trim();
-    
+    // 2. Knowledge Base Overrides
+    if (q.includes("first president") || q.includes("1st president")) return { text: "George Washington (1789–1797) was the 1st US President.", url: "https://en.wikipedia.org/wiki/George_Washington" };
+    if (q.includes("cite") || q.includes("source")) return { text: "MLA: (Author Page). APA: (Author, Year). Use Purdue OWL for full guides.", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
+
+    // 3. Wiki Search
+    output.textContent += "SEARCHING GLOBAL ARCHIVES...\n";
+    let clean = q.replace(/how to|what is|where is|tell me about/g, "").trim();
     const data = await searchWikipedia(clean || q);
     
     if (data && data.extract) {
-        return { 
-            text: `ARCHIVE LOG #${sessionQueries}: ${data.extract}`, 
-            url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${data.title}` 
-        };
+        return { text: `ARCHIVE #${sessionCount}: ${data.extract}`, url: data.content_urls?.desktop.page };
     }
-
-    return { text: "I couldn't find a direct record. Try using a more specific name or topic." };
+    return { text: "No specific match found. Please refine your subject." };
 }
-
 
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
@@ -146,12 +168,12 @@ input.addEventListener('keydown', async (e) => {
         setAzul('hover');
         await typeText(`AZUL: ${res.text}`);
         if (res.url) await typeText(res.url, true);
-        await new Promise(r => setTimeout(r, 1000));
+        saveNote(val, res.text);
         setAzul('waiting');
     }
 });
 
-window.onload = () => typeText("STUDY PARTNER READY. SEARCH ARCHIVES OR SOLVE MATH.");
+window.onload = () => typeText("AZUL STUDY SYSTEM ONLINE. ACCESSING WIKIPEDIA CORE...");
 </script>
 </body>
 </html>
