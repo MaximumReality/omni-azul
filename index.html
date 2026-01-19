@@ -18,7 +18,6 @@
     overflow: hidden;
   }
 
-  /* --- CRT Overlay --- */
   #scanlines {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -27,36 +26,34 @@
     background-size: 100% 3px, 3px 100%;
     pointer-events: none;
     z-index: 100;
-    opacity: 0.4;
+    opacity: 0.3;
   }
 
   #terminal {
     position: relative;
     width: 100%; height: 100%;
-    padding: 25px;
+    padding: 20px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    text-shadow: 0 0 5px var(--glow-color);
   }
 
   #output {
     flex-grow: 1;
     white-space: pre-wrap;
-    line-height: 1.6em;
+    line-height: 1.5em;
     overflow-y: auto;
     margin-bottom: 90px;
-    scrollbar-width: none;
+    text-shadow: 0 0 5px var(--glow-color);
   }
-  #output::-webkit-scrollbar { display: none; }
 
   #inputBar {
     position: fixed;
-    bottom: 25px;
-    left: 25px;
-    width: calc(100% - 190px);
+    bottom: 20px;
+    left: 20px;
+    width: calc(100% - 160px);
     display: flex;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.9);
     border-top: 1px solid var(--terminal-green);
     padding-top: 10px;
     z-index: 10;
@@ -68,46 +65,29 @@
     border: none;
     color: var(--terminal-green);
     font-family: inherit;
-    font-size: 1.1rem;
+    font-size: 1rem;
     outline: none;
   }
 
-  /* --- Azul State Container --- */
   #azulContainer {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 130px;
-    height: 130px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    bottom: 20px;
+    right: 20px;
+    width: 120px;
+    transition: all 0.5s ease;
     z-index: 20;
   }
 
   #azulSprite {
     width: 100%;
-    height: auto;
-    filter: drop-shadow(0 0 8px var(--glow-color));
+    filter: drop-shadow(0 0 10px var(--glow-color));
   }
 
-  /* --- Animations --- */
-  .bobbing { animation: bob 4s ease-in-out infinite; }
-  @keyframes bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
+  .bobbing { animation: bob 3s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-  .shake-flight {
-    animation: flight-wobble 0.15s infinite;
-  }
-  @keyframes flight-wobble {
-    0% { transform: translate(1px, 1px); }
-    50% { transform: translate(-1px, -1px); }
-    100% { transform: translate(1px, 1px); }
-  }
-
+  .flying-fx { animation: shake 0.1s infinite; }
+  @keyframes shake { 0% { transform: translate(1px, 1px); } 100% { transform: translate(-1px, -1px); } }
 </style>
 </head>
 <body>
@@ -118,7 +98,7 @@
   <div id="output"></div>
   <div id="inputBar">
     <span style="margin-right:10px;">></span>
-    <input type="text" id="userInput" autofocus autocomplete="off" placeholder="Message Azul...">
+    <input type="text" id="userInput" autofocus autocomplete="off">
   </div>
 </div>
 
@@ -132,88 +112,89 @@ const input = document.getElementById('userInput');
 const azul = document.getElementById('azulSprite');
 const azulCont = document.getElementById('azulContainer');
 
-// --- Audio Beeps ---
+// --- Audio ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playBeep(freq = 400) {
+function playBeep(freq) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.003, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.005, audioCtx.currentTime);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.04);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.05);
 }
 
-// --- Typing Function ---
-async function typeText(text, isAzul = true) {
-    const prefix = isAzul ? "AZUL: " : "";
-    if (prefix) output.textContent += prefix;
-    
+// --- Typing ---
+async function typeText(text) {
     for (let char of text) {
         output.textContent += char;
-        playBeep(400 + (Math.random() * 300));
+        playBeep(400 + Math.random() * 200);
         output.scrollTop = output.scrollHeight;
-        await new Promise(r => setTimeout(r, 35));
+        await new Promise(r => setTimeout(r, 30));
     }
     output.textContent += "\n\n";
 }
 
-// --- State Management ---
-const sprites = {
-    waiting: 'waiting_azul.png',   // Seated at table (Default)
-    idle: 'idle_azul.png',         // Seated waiting (Thinking)
-    flying: 'flying-azul-front-facing.png', // Transitioning
-    hover: 'hover-azul.png'        // Showing results
-};
-
-function updateAzul(state) {
-    azul.src = sprites[state];
-    
+// --- State Engine ---
+function setAzul(state) {
     // Reset classes
-    azulCont.classList.remove('shake-flight');
+    azulCont.classList.remove('flying-fx');
     
-    if (state === 'flying') {
-        azulCont.classList.add('shake-flight');
-        azulCont.style.transform = 'translateY(-100px) scale(1.1)';
+    if (state === 'waiting') {
+        azul.src = 'waiting_azul.png';
+        azulCont.style.transform = 'translateY(0)';
+    } else if (state === 'idle') {
+        azul.src = 'idle_azul.png';
+        azulCont.style.transform = 'translateY(0)';
+    } else if (state === 'flying') {
+        azul.src = 'flying-azul-front-facing.png';
+        azulCont.classList.add('flying-fx');
+        azulCont.style.transform = 'translateY(-60px) scale(1.1)';
     } else if (state === 'hover') {
-        azulCont.style.transform = 'translateY(-40px) scale(1.05)';
-    } else {
-        azulCont.style.transform = 'translateY(0) scale(1)';
+        azul.src = 'hover-azul.png';
+        azulCont.style.transform = 'translateY(-30px)';
     }
 }
 
-// --- Data Logic ---
+// Check for broken images
+azul.onerror = () => {
+    output.textContent += `!! SYSTEM ERROR: Failed to load ${azul.src.split('/').pop()} !!\n`;
+};
+
+// --- API & Knowledge ---
 async function getAnswer(query) {
     const q = query.toLowerCase();
     
-    // Simulate NASA fetch
-    if (q.includes("space") || q.includes("nasa")) {
+    // Specific Moon Query
+    if (q.includes("moon") && q.includes("far")) {
+        return "The Moon is an average of 238,855 miles (384,400 km) away from Earth. It takes about 3 days to travel there by spacecraft.";
+    }
+
+    // NASA API
+    if (q.includes("space") || q.includes("nasa") || q.includes("astronomy")) {
         try {
             const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
             const data = await res.json();
-            return `I've accessed the NASA archives. Today's report: "${data.title}". It's fascinating.`;
-        } catch(e) {
-            return "The satellite link is shaky, but I recall that space is infinitely cozy yet cold.";
+            return `NASA DATA: ${data.title}. ${data.explanation.substring(0, 120)}...`;
+        } catch (e) {
+            return "Unable to reach NASA. Local records show: The Moon is Earth's only natural satellite.";
         }
     }
 
-    const responses = {
-        "hello": "Hello! I've been keeping your seat warm. What's on your mind?",
-        "azul": "That's me. Seated, caffeinated, and ready to assist.",
-        "coffee": "It's digital decaf. Keeps my processors smooth.",
-        "links": "Searching for connection points... I'll fly over to them now."
+    const simple = {
+        "hello": "Greetings. System is cozy.",
+        "azul": "I am Azul. I'm currently seated at my terminal, ready to fly if you have questions.",
+        "help": "You can ask about the moon, space, or just say hello."
     };
 
-    for (let key in responses) {
-        if (q.includes(key)) return responses[key];
+    for (let key in simple) {
+        if (q.includes(key)) return simple[key];
     }
-    return "I'm not sure about that, but I'm happy to keep looking through the logs with you.";
+    return "Query analyzed. No specific data found. Try asking about the 'moon' or 'nasa'.";
 }
 
-// --- Interaction Loop ---
+// --- Main Event ---
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         const val = input.value.trim();
@@ -222,29 +203,21 @@ input.addEventListener('keydown', async (e) => {
         input.value = "";
         output.textContent += `> ${val}\n`;
 
-        // 1. Azul starts thinking (Idle seated)
-        updateAzul('idle');
+        setAzul('idle'); // Thinking
         const reply = await getAnswer(val);
-        await new Promise(r => setTimeout(r, 600));
+        
+        setAzul('flying');
+        await new Promise(r => setTimeout(r, 700));
 
-        // 2. Azul flies to deliver the news
-        updateAzul('flying');
-        await new Promise(r => setTimeout(r, 800));
+        setAzul('hover');
+        await typeText(`AZUL: ${reply}`);
 
-        // 3. Azul hovers and speaks
-        updateAzul('hover');
-        await typeText(reply);
-
-        // 4. Return to the table
-        await new Promise(r => setTimeout(r, 1000));
-        updateAzul('waiting');
+        await new Promise(r => setTimeout(r, 2000));
+        setAzul('waiting'); // Back to table
     }
 });
 
-// Initial Load
-window.onload = () => {
-    typeText("SYSTEMS WARMING UP... COZY MODE ENABLED.", false);
-};
+window.onload = () => typeText("COZY CONSOLE INITIALIZED. AZUL IS STANDING BY.");
 </script>
 </body>
 </html>
