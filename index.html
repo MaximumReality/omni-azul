@@ -212,6 +212,22 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
+    // 1. THE NEW PART: ETHICS MODE
+    const ethicsWords = ["should", "moral", "right", "wrong", "ethical", "cruel", "humane"];
+    const isEthicsQuery = ethicsWords.some(word => val.includes(word));
+
+    if (isEthicsQuery) {
+        azulSprite.src = "flying-azul-front-facing.png"; 
+        const data = await searchWiki(val);
+        if (data) {
+            return { 
+                text: `ETHICAL PROTOCOL: Regarding '${data.title}', there is a significant gap between biological data and moral intuition. While science defines the 'how,' ethics questions the 'why.'\n\n${data.extract}`,
+                url: data.url 
+            };
+        }
+    }
+
+    // 2. THE PART YOU ALREADY HAVE: CITATIONS
     if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
         azulSprite.src = "flying-azul-front-facing.png";
         if ((val === "cite" || val === "cite this") && lastResult) {
@@ -224,13 +240,16 @@ async function handleQuery(q) {
         };
     }
 
+    // 3. THE PART YOU ALREADY HAVE: GENERAL SEARCH & COORDS
     const data = await searchWiki(val);
     if (data) {
         lastResult = { title: data.title, url: data.url };
         return { text: data.extract, url: data.url, geo: data.geo };
     }
+    
     return { text: "No academic record found. Refine query parameters." };
 }
+    }
 
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
