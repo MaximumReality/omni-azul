@@ -155,10 +155,18 @@ async function typeText(text, url = null, geo = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        let cleanQuery = query.toLowerCase()
-            .replace(/^(do|does|how|where|is|what|feel|have)\s+/g, "")
-            .replace(/\s+(feel|pain|eyes|brains|have|is|located)$/g, "");
+        // 1. IMPROVED EXTRACTION: Focusing on the core noun
+        let subject = query.toLowerCase()
+            .replace(/\b(is|it|to|should|wrong|right|kill|hurt|wounded|a|an|the)\b/g, "")
+            .trim();
 
+        // If the subject is empty or too vague, default to "Animal welfare" or "Euthanasia"
+        if (subject.length < 3) subject = "Animal welfare";
+
+        // 2. Try Opensearch
+        const openUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(subject)}&limit=1&namespace=0&format=json&origin=*`;
+        const openRes = await fetch(openUrl);
+        const openData = await openRes.json();
         const openUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(cleanQuery)}&limit=1&namespace=0&format=json&origin=*`;
         const openRes = await fetch(openUrl);
         const openData = await openRes.json();
