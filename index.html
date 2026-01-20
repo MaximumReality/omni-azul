@@ -155,19 +155,15 @@ async function typeText(text, url = null, geo = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        // 1. IMPROVED EXTRACTION: Focusing on the core noun
+        // 1. SUBJECT SHARPENER: Strips question words to find the noun
         let subject = query.toLowerCase()
-            .replace(/\b(is|it|to|should|wrong|right|kill|hurt|wounded|a|an|the)\b/g, "")
+            .replace(/\b(is|it|to|should|wrong|right|kill|hurt|wounded|a|an|the|do|feel|have)\b/g, "")
             .trim();
 
-        // If the subject is empty or too vague, default to "Animal welfare" or "Euthanasia"
         if (subject.length < 3) subject = "Animal welfare";
 
-        // 2. Try Opensearch
+        // 2. SEARCH WIKIPEDIA
         const openUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(subject)}&limit=1&namespace=0&format=json&origin=*`;
-        const openRes = await fetch(openUrl);
-        const openData = await openRes.json();
-        const openUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(cleanQuery)}&limit=1&namespace=0&format=json&origin=*`;
         const openRes = await fetch(openUrl);
         const openData = await openRes.json();
         
@@ -212,7 +208,6 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
     
-    // 1. ETHICS MODE
     const ethicsWords = ["should", "moral", "right", "wrong", "ethical", "cruel", "humane"];
     const isEthicsQuery = ethicsWords.some(word => val.includes(word));
 
@@ -227,7 +222,6 @@ async function handleQuery(q) {
         }
     }
 
-    // 2. CITATIONS
     if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
         azulSprite.src = "flying-azul-front-facing.png";
         if ((val === "cite" || val === "cite this") && lastResult) {
@@ -240,7 +234,6 @@ async function handleQuery(q) {
         };
     }
 
-    // 3. GENERAL SEARCH
     const data = await searchWiki(val);
     if (data) {
         lastResult = { title: data.title, url: data.url };
