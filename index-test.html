@@ -229,6 +229,15 @@ async function handleQuery(q) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
+  // A "Soft Filter" for the Universal Utility
+let refined = val;
+const scienceTriggers = ["moon", "mercury", "lead", "shell", "cell"];
+
+if (scienceTriggers.some(t => val.includes(t)) && !val.includes("music") && !val.includes("band")) {
+    // We gently nudge the API toward the "Whole" systems view
+    refined += " science geology astronomy"; 
+}
+
     const data = await searchWiki(refined, controller.signal); // DATA IS DEFINED HERE
     clearTimeout(timeout);
 
