@@ -166,14 +166,17 @@ async function typeText(text, url = null, geo = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        // 1. SUBJECT SHARPENER: Strips question words to find the noun
-        let subject = query.toLowerCase()
-            .replace(/\b(is|it|to|should|wrong|right|kill|hurt|wounded|a|an|the|do|feel|have)\b/g, "")
-            .trim();
+        //// 1. IMPROVED SUBJECT SHARPENER
+let subject = query.toLowerCase()
+    .replace(/\b(is|it|to|should|wrong|right|do|feel|have|acceptable|the|a|an)\b/g, "")
+    .trim();
 
-        if (subject.length < 3) subject = "Animal welfare";
+// 2. SPECIFIC CONTEXT PROTECTOR
+if (query.toLowerCase().includes("meat")) subject = "Ethics of eating meat";
+if (subject.length < 3) subject = query; // Fallback to full query
 
-        // 2. SEARCH WIKIPEDIA
+
+        // 3. SEARCH WIKIPEDIA
         const openUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(subject)}&limit=1&namespace=0&format=json&origin=*`;
         const openRes = await fetch(openUrl);
         const openData = await openRes.json();
