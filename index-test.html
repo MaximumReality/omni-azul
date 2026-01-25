@@ -6,116 +6,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Omni-Azul: Research Partner</title>
   <style>
-  :root { 
-    --terminal-green: #00ff41; 
-    --glow-color: rgba(0, 255, 65, 0.6); 
-    --header-bg: #111; 
-  }
+    :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); --header-bg: #111; }
+    
+    body, html { 
+        margin: 0; padding: 0; height: 100%; width: 100%;
+        background: #050505; font-family: 'Courier New', monospace; 
+        color: var(--terminal-green); overflow: hidden;
+        position: fixed; /* Prevents bouncing on iPhone */
+    }
 
-  body, html { 
-    margin: 0; 
-    padding: 0; 
-    height: 100%; 
-    width: 100%; /* Explicitly set width */
-    background: #050505; 
-    font-family: 'Courier New', monospace; 
-    color: var(--terminal-green); 
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    position: fixed; /* Helps prevent iPhone "rubber-banding" */
-  }
+    /* OVERLAY FIX: Higher Z-Index to cover toolbar */
+    #overlay { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,1); z-index: 9999; 
+        display: flex; align-items: center; justify-content: center; 
+    }
+    
+    #guide { 
+        background: #000; border: 2px solid var(--terminal-green); 
+        padding: 25px; width: 85%; max-width: 350px; 
+        box-shadow: 0 0 20px var(--glow-color);
+        box-sizing: border-box; /* Fixes the 'missing edge' issue */
+    }
 
-  /* Ensure the terminal doesn't overflow */
-  #terminal { 
-    position: relative; 
-    width: 100vw; 
-    max-width: 100%; 
-    height: calc(100dvh - 50px); 
-    margin-top: 50px; 
-    padding: 15px; 
-    box-sizing: border-box; 
-    display: flex; 
-    flex-direction: column; 
-    overflow: hidden;
-  }
+    #toolbar { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 50px; 
+        background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); 
+        display: flex; align-items: center; justify-content: space-between; 
+        padding: 0 10px; box-sizing: border-box; z-index: 1500; 
+    }
 
-  #output { 
-    flex-grow: 1; 
-    white-space: pre-wrap; 
-    line-height: 1.4em; 
-    overflow-y: auto; 
-    margin-bottom: 80px; 
-    word-break: break-word; /* Forces long text to wrap instead of pushing the screen wide */
-    font-size: 14px; /* Slightly smaller for mobile readability */
-  }
-  
-  #inputBar { 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    width: 100%; 
-    /* Important for iPhone "Notch" and Home Bar */
-    padding: 10px 15px calc(15px + env(safe-area-inset-bottom)) 15px;
-    background: rgba(0,0,0,0.95); 
-    border-top: 1px solid var(--terminal-green); 
-    z-index: 100; 
-    box-sizing: border-box; 
-    display: flex; 
-    align-items: center;
-  }
+    #terminal { 
+        position: relative; width: 100%; height: calc(100dvh - 50px); 
+        margin-top: 50px; padding: 15px; box-sizing: border-box; 
+        display: flex; flex-direction: column; 
+    }
 
-  #userInput { 
-    flex-grow: 1; 
-    width: 100%; /* Ensure input stays within the bar */
-    background: transparent; 
-    border: none; 
-    color: var(--terminal-green); 
-    font-family: inherit; 
-    font-size: 16px; /* 16px prevents iPhone from zooming in automatically when typing */
-    outline: none; 
-  }
+    #output { 
+        flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; 
+        overflow-y: auto; margin-bottom: 100px; 
+        text-shadow: 0 0 5px var(--glow-color);
+        word-wrap: break-word; font-size: 14px;
+    }
+    
+    #inputBar { 
+        position: fixed; bottom: 0; left: 0; width: 100%; 
+        padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px;
+        background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); 
+        z-index: 100; box-sizing: border-box; display: flex; align-items: center;
+    }
 
-#azulContainer { 
-  position: fixed; 
-  bottom: 85px; /* Sits right above the input bar */
-  right: 15px; 
-  width: 80px; /* This locks the size so it can't be huge */
-  z-index: 20; 
-  pointer-events: none; 
-}
+    #userInput { 
+        flex-grow: 1; background: transparent; border: none; 
+        color: var(--terminal-green); font-family: inherit; 
+        font-size: 16px; outline: none; width: 100%;
+    }
 
-#azulSprite { 
-  width: 100%; /* This tells the image to fill the 80px container and no more */
-  height: auto; /* Keeps the proportions correct so he isn't squished */
-  filter: drop-shadow(0 0 8px var(--glow-color)); 
-}
+    /* SPRITE FIX: Locked size for iPhone */
+    #azulContainer { 
+        position: fixed; bottom: 100px; right: 15px; 
+        width: 100px; z-index: 20; pointer-events: none; 
+    }
+    #azulSprite { width: 100%; height: auto; filter: drop-shadow(0 0 10px var(--glow-color)); }
 
-
-  #guide { 
-    background: #000; 
-    border: 2px solid var(--terminal-green); 
-    padding: 20px; 
-    width: 85%; /* Use percentage instead of max-width for the overlay */
-    max-width: 350px; 
-    box-shadow: 0 0 15px var(--glow-color); 
-  }
-</style>
-
+    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 8px; font-weight: bold; cursor: pointer; border-radius: 3px; font-size: 0.7rem; }
+    .bobbing { animation: bob 3s ease-in-out infinite; }
+    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .loading-hourglass { display: inline-block; animation: flip 1.5s infinite; }
+    @keyframes flip { 0% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } 100% { transform: rotate(180deg); } }
+    .fact-text { color: #ffb000; border-left: 2px solid #ffb000; padding-left: 10px; margin: 10px 0; }
+    a { color: #fff; text-decoration: underline; }
+  </style>
 </head>
 <body>
 
 <div id="overlay">
   <div id="guide">
-    <h2 style="margin-top:0; color:white;">OMNI-AZUL v2.5</h2>
-    <p>• <strong>SEARCH:</strong> High-fidelity academic logic.</p>
-    <p>• <strong>FACT:</strong> Random STEAM data protocols.</p>
-    <p>• <strong>LOG:</strong> Session history with citations.</p>
-    <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
+    <h2 style="margin-top:0; color:white; font-size: 1.2rem;">OMNI-AZUL v2.5</h2>
+    <p style="font-size: 0.9rem;">• <strong style="color:var(--terminal-green)">SEARCH:</strong> Academic logic.</p>
+    <p style="font-size: 0.9rem;">• <strong style="color:var(--terminal-green)">FACT:</strong> STEAM data.</p>
+    <p style="font-size: 0.9rem;">• <strong style="color:var(--terminal-green)">LOG:</strong> Session history.</p>
+    <button class="btn-ui" style="width:100%; padding:12px; margin-top:10px; font-size: 1rem;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
   </div>
 </div>
 
 <div id="toolbar">
   <a href="https://maximumreality.xyz" class="btn-ui" style="text-decoration:none;">🏡</a>
-  <div style="display:flex; gap:8px;">
+  <div style="display:flex; gap:5px;">
     <button class="btn-ui" onclick="triggerFact()">FACT</button>
     <button class="btn-ui" onclick="showLog()">📝</button>
     <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
@@ -135,59 +112,26 @@
 
 <script>
 let sessionLog = []; 
-let lastResult = null; // Memory for Citation Protocol
+let lastResult = null;
 
 const azulFacts = [
-    "PHYSIOLOGY: Distraction osteogenesis uses mechanical tension to stimulate osteoblastic activity and lengthen bone tissue.",
-    "QUANTUM: Entanglement occurs when particles become linked such that the state of one instantaneously influences the other regardless of distance.",
-    "ASTRONOMY: The observable universe contains an estimated 2 trillion galaxies, each containing billions of stellar systems.",
-    "NEUROLOGY: The human brain contains approximately 86 billion neurons, forming an estimated 100 trillion synaptic connections.",
-    "BOTANY: Mycelial networks facilitate nutrient and information exchange between disparate plant species via a subterranean 'wood wide web'.",
-    "PHYSICS: The Chandrasekhar limit (1.4 solar masses) determines the maximum mass of a stable white dwarf star before gravitational collapse.",
-    "BIOCHEMISTRY: ATP (Adenosine triphosphate) serves as the primary energy currency for all cellular metabolic processes.",
-    "GEOLOGY: The movement of tectonic plates is driven by mantle convection currents and the gravitational pull of subducting slabs.",
-    "MATHEMATICS: The Golden Ratio (Phi ≈ 1.618) describes logarithmic spirals found in phyllotaxis and galactic structures.",
-    "THERMODYNAMICS: The Second Law states that the total entropy of an isolated system can never decrease over time.",
-    "COMPUTING: Bit depth determines the number of possible values that can be represented in a digital signal.",
-    "OPTICS: The speed of light in a vacuum is exactly 299,792,458 meters per second.",
-    "GENETICS: DNA is composed of four nucleotide bases: adenine (A), cytosine (C), guanine (G), and thymine (T).",
-    "CHEMISTRY: The periodic table currently consists of 118 confirmed chemical elements.",
-    "METEOROLOGY: The Coriolis effect, caused by Earth's rotation, deflects moving air to the right in the Northern Hemisphere."
+    "QUANTUM: Entanglement occurs when particles stay linked regardless of distance.",
+    "ASTRONOMY: The observable universe contains 2 trillion galaxies.",
+    "NEUROLOGY: The brain has 86 billion neurons and 100 trillion synapses.",
+    "PHYSICS: The speed of light is 299,792,458 m/s.",
+    "GENETICS: DNA uses four bases: A, C, G, and T."
 ];
 
 const output = document.getElementById('output');
 const input = document.getElementById('userInput');
 const azulSprite = document.getElementById('azulSprite');
 
-async function triggerFact() {
-    const randomFact = azulFacts[Math.floor(Math.random() * azulFacts.length)];
-    azulSprite.src = "hover-azul.png";
-    let factContainer = document.createElement("div"); 
-    factContainer.className = "fact-text";
-    output.appendChild(factContainer);
-    let fullText = `[FACT PROTOCOL]: ${randomFact}`;
-    for (let char of fullText) {
-        factContainer.textContent += char; 
-        output.scrollTop = output.scrollHeight;
-        await new Promise(r => setTimeout(r, 15));
-    }
-    azulSprite.src = "waiting_azul.png";
-}
-
-function toggleAmber() {
-    const root = document.documentElement;
-    const isAmber = root.style.getPropertyValue('--terminal-green') === '#ffb000';
-    root.style.setProperty('--terminal-green', isAmber ? '#00ff41' : '#ffb000');
-    root.style.setProperty('--glow-color', isAmber ? 'rgba(0, 255, 65, 0.6)' : 'rgba(255, 176, 0, 0.6)');
-}
-
 async function typeText(text, url = null, geo = null) {
     azulSprite.src = "idle_azul.png";
     let messageSpan = document.createElement("div"); 
     messageSpan.style.marginBottom = "15px";
     output.appendChild(messageSpan);
-    let displayGeo = geo ? `\n\nCOORDINATES: ${geo}` : "";
-    let fullText = text + displayGeo;
+    let fullText = text + (geo ? `\n\nCOORDINATES: ${geo}` : "");
     for (let char of fullText) {
         messageSpan.textContent += char; 
         output.scrollTop = output.scrollHeight;
@@ -200,211 +144,69 @@ async function typeText(text, url = null, geo = null) {
         messageSpan.appendChild(linkAnchor);
     }
     azulSprite.src = "waiting_azul.png";
-    output.scrollTop = output.scrollHeight;
-}
-
-async function showLog() {
-    azulSprite.src = "idle_azul.png";
-    let logContainer = document.createElement("div");
-    logContainer.style.border = "1px dashed var(--terminal-green)";
-    logContainer.style.padding = "10px";
-    logContainer.style.margin = "10px 0";
-    output.appendChild(logContainer);
-    if (sessionLog.length === 0) {
-        await typeText("LOG ERROR: No session data found in active RAM.");
-        return;
-    }
-    let logText = "--- RECENT ACADEMIC SESSIONS ---\n";
-    sessionLog.forEach((entry, i) => {
-        logText += `${i + 1}. QUERY: [${entry.query}]\n   CITE: ${entry.citation}\n\n`;
-    });
-    await typeText(logText);
 }
 
 async function searchWiki(query, signal) {
     azulSprite.src = "hover-azul.png";
     try {
-        // STEP 1: Identify the main subject (the first noun or the first word)
-        // We trim common question words to find the "heart" of the query
-        let subject = query.replace(/do|does|why|how|the|a|an/gi, "").trim().split(" ")[0];
-
-        // STEP 2: Use a "Search" that prioritizes the subject in the title
+        // Cleaning query to force animal/subject focus
+        let subject = query.replace(/do|does|why|how|the|a|an|feel|pain/gi, "").trim().split(" ")[0];
         const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(subject)}&gsrlimit=1&prop=extracts|coordinates&exintro&explaintext&format=json&origin=*`;
-        
         const res = await fetch(searchUrl, { signal });
         const data = await res.json();
-        
         if (!data.query) return null;
-
         const page = Object.values(data.query.pages)[0];
-        
-        // STEP 3: Safety Check
-        // If the result title doesn't contain our subject, it's likely a "Simpsons" style error
-        if (!page.title.toLowerCase().includes(subject.toLowerCase())) {
-             return { text: "Search focus lost. Please specify the subject more clearly (e.g., 'Jellyfish Biology')." };
-        }
-
         return {
             title: page.title,
             extract: page.extract,
             url: `https://en.wikipedia.org/?curid=${page.pageid}`,
-            geo: page.coordinates ? `${page.coordinates[0].lat.toFixed(4)}°N, ${page.coordinates[0].lon.toFixed(4)}°W` : null
+            geo: page.coordinates ? `${page.coordinates[0].lat.toFixed(4)}°N` : null
         };
     } catch (e) { return null; }
 }
 
-
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
 
-    // --- CITATION PROTOCOL (Remains the same) ---
-    if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
+    // CITATION PROTOCOL
+    if (val.includes("cite") || val.includes("citation") || val.includes("mla")) {
         azulSprite.src = "flying-azul-front-facing.png";
         if ((val === "cite" || val === "cite this") && lastResult) {
             const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
             return { text: `MLA CITATION:\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`, url: lastResult.url };
         }
-        return { text: "CITATION PROTOCOL: Refer to the Purdue OWL for formatting.", url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" };
+        return { text: "CITATION PROTOCOL: Refer to the Purdue OWL.", url: "https://owl.purdue.edu/" };
     }
 
-    // 1. LOCAL MATH CORE (Remains the same)
-    if (val.includes("square root") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
-        try { return { text: `MATH: ${eval(val.replace('x', '*'))}`, geo: "MATH_CORE" }; } catch (e) {}
-    }
-
-    // 2. DISCIPLINE: Terminology Filter (Remains the same)
-    const slangMap = { 'cats': 'felines', 'dogs': 'canines', 'pigs': 'swine' };
-    for (let slang in slangMap) {
-        if (val.includes(slang)) return { text: `TERMINAL ERROR: Use '${slangMap[slang]}'.`, geo: "LOGIC_GATE" };
-    }
-
-    // 3. REFINED SEARCH & FETCH (Simplified to avoid hijacking)
-    let refined = val;
-    // We only add "science" if it's a single word like "Mercury"
-    if (val.split(" ").length === 1 && ["mercury", "lead", "shell"].includes(val)) {
-        refined += " science"; 
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const data = await searchWiki(refined, controller.signal);
-    clearTimeout(timeout);
-
+    const data = await searchWiki(val);
     if (data) {
         lastResult = data;
-        const citation = `(${data.title}, 2026). Retrieved from Omni-Azul.`;
-        sessionLog.unshift({ query: val, citation: citation }); 
-        if (sessionLog.length > 5) sessionLog.pop();
-
         return { text: data.extract, url: data.url, geo: data.geo };
     }
-    return { text: "No academic record found. Increase query precision." };
-}
-
-
-async function handleQuery(q) {
-    let val = q.toLowerCase().trim();
-
-        // --- EXPANDED CITATION PROTOCOL ---
-    if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa") || val.includes("chicago")) {
-        azulSprite.src = "flying-azul-front-facing.png";
-
-        // Check for specific style requests to provide direct links
-        let citationLink = "https://owl.purdue.edu/owl/research_and_citation/resources.html";
-        let styleName = "General";
-
-        if (val.includes("apa")) {
-            citationLink = "https://owl.purdue.edu/owl/research_and_citation/apa_style/apa_formatting_and_style_guide/general_format.html";
-            styleName = "APA";
-        } else if (val.includes("chicago")) {
-            citationLink = "https://owl.purdue.edu/owl/research_and_citation/chicago_manual_17th_edition/cmos_formatting_and_style_guide/general_format.html";
-            styleName = "Chicago";
-        } else if (val.includes("mla")) {
-            citationLink = "https://owl.purdue.edu/owl/research_and_citation/mla_style/mla_formatting_and_style_guide/mla_general_format.html";
-            styleName = "MLA";
-        }
-
-        // Logic for "Cite This" (using the last search result)
-        if ((val === "cite" || val === "cite this") && lastResult) {
-            const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-            return { 
-                text: `MLA CITATION (AUTO-GEN):\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`, 
-                url: lastResult.url 
-            };
-        }
-
-        // Default or specific style guidance
-        return { 
-            text: `CITATION PROTOCOL: Redirecting to Purdue OWL ${styleName} formatting standards.`, 
-            url: citationLink 
-        };
-    }
-
-    // 1. LOCAL MATH CORE
-    if (val.includes("square root") || val.includes("rms") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
-        try {
-            let mathQuery = val.replace("square root of", "Math.sqrt(").replace("square root", "Math.sqrt");
-            if (mathQuery.includes("Math.sqrt") && !mathQuery.includes(")")) mathQuery += ")";
-            return { text: `MATHEMATICAL PRECISION: ${val} = ${eval(mathQuery.replace('x', '*'))}`, geo: "MATH_CORE" };
-        } catch (e) {}
-    }
-
-    // 2. DISCIPLINE: Terminology Filter
-    const slangMap = { 'cats': 'felines', 'dogs': 'canines', 'octopus': 'octopi', 'pigs': 'swine' };
-    for (let slang in slangMap) {
-        if (val.includes(slang)) return { text: `TERMINAL ERROR: Low-fidelity terminology. Use '${slangMap[slang]}' for academic indexing.`, geo: "LOGIC_GATE" };
-    }
-
-        // 3. REFINED SEARCH & FETCH
-    let refined = val;
-    const scienceTriggers = ["moon", "mercury", "lead", "shell"]; // Removed 'cell' to prevent Neuropathy hijacking
-    
-    // Only append science terms if the query isn't already specific
-    if (scienceTriggers.some(t => val.includes(t)) && !val.includes("music") && !val.includes("band")) {
-        refined += " science geology astronomy"; 
-    }
-
-    // NEW: If the query is a specific biological question, keep it clean
-    if (val.includes("do ") || val.includes("why ") || val.includes("jellyfish")) {
-        refined = val; 
-    }
-
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const data = await searchWiki(refined, controller.signal);
-    clearTimeout(timeout);
-
-    if (data) {
-        lastResult = data; // Update memory for the citation protocol
-        const citation = `(${data.title}, 2026). Retrieved from Omni-Azul Academic Archive.`;
-        sessionLog.unshift({ query: val, citation: citation }); 
-        if (sessionLog.length > 5) sessionLog.pop();
-
-        let prefix = (val.includes("ethic") || val.includes("wrong") || val.includes("moral")) ? 
-            `ETHICAL PROTOCOL: Regarding '${data.title}', science defines the 'how,' ethics questions the 'why.'\n\n` : "";
-        return { text: prefix + data.extract, url: data.url, geo: data.geo };
-    }
-    return { text: "No academic record found. Increase query precision." };
+    return { text: "No academic record found." };
 }
 
 input.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
-        const val = input.value;
-        if (!val) return;
+        const val = input.value; if (!val) return;
         input.value = "";
         const line = document.createElement("div");
-        line.style.color = "white";
-        line.textContent = `> ${val}`;
+        line.style.color = "white"; line.textContent = `> ${val}`;
         output.appendChild(line);
-        const loadingLine = document.createElement("div");
-        loadingLine.innerHTML = `AZUL: SEARCHING ARCHIVES... <span class="loading-hourglass">⌛</span>`;
-        output.appendChild(loadingLine);
+        const loading = document.createElement("div");
+        loading.innerHTML = `AZUL: SEARCHING... <span class="loading-hourglass">⌛</span>`;
+        output.appendChild(loading);
         const res = await handleQuery(val);
-        output.removeChild(loadingLine);
+        output.removeChild(loading);
         await typeText(`AZUL: ${res.text}`, res.url, res.geo);
     }
 });
+
+function toggleAmber() {
+    const root = document.documentElement;
+    const isAmber = root.style.getPropertyValue('--terminal-green') === '#ffb000';
+    root.style.setProperty('--terminal-green', isAmber ? '#00ff41' : '#ffb000');
+}
 
 window.onload = () => typeText("OMNI-AZUL v2.5 ONLINE. SUBJECT LOCK ACTIVE.");
 </script>
