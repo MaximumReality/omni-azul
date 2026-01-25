@@ -79,7 +79,7 @@
     <h2 style="color:white; margin-top:0;">OMNI-AZUL v2.5</h2>
     <p>• SEARCH: Academic Logic</p>
     <p>• FACT: STEAM Data</p>
-    <p>• LOG: Session Records</p>
+    <p>• GEO: Coordinate Tracking</p>
     <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
   </div>
 </div>
@@ -109,16 +109,21 @@ const output = document.getElementById('output');
 const input = document.getElementById('userInput');
 const azulSprite = document.getElementById('azulSprite');
 
-async function typeText(text, url = null) {
+async function typeText(text, url = null, geo = null) {
     azulSprite.src = "idle_azul.png";
     let div = document.createElement("div");
     div.style.marginBottom = "15px";
     output.appendChild(div);
-    for (let char of text) {
+    
+    let fullText = text;
+    if (geo) fullText += `\n\nCOORDINATES: ${geo}`;
+
+    for (let char of fullText) {
         div.textContent += char;
         output.scrollTop = output.scrollHeight;
         await new Promise(r => setTimeout(r, 10));
     }
+    
     if (url) {
         let a = document.createElement("a");
         a.href = url; a.target = "_blank"; a.style.color = "white";
@@ -131,12 +136,24 @@ async function typeText(text, url = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=extracts&exintro&explaintext&format=json&origin=*`;
+        // Updated URL to include 'coordinates' property
+        const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=extracts|coordinates&exintro&explaintext&format=json&origin=*`;
         const res = await fetch(url);
         const data = await res.json();
         if (!data.query) return null;
         const page = Object.values(data.query.pages)[0];
-        return { title: page.title, extract: page.extract, url: `https://en.wikipedia.org/?curid=${page.pageid}` };
+        
+        let geoData = null;
+        if (page.coordinates) {
+            geoData = `${page.coordinates[0].lat.toFixed(4)}°N, ${page.coordinates[0].lon.toFixed(4)}°E`;
+        }
+
+        return { 
+            title: page.title, 
+            extract: page.extract, 
+            url: `https://en.wikipedia.org/?curid=${page.pageid}`,
+            geo: geoData 
+        };
     } catch (e) { return null; }
 }
 
@@ -145,7 +162,7 @@ async function triggerFact() {
         "PHYSIOLOGY: Distraction osteogenesis uses mechanical tension to stimulate bone growth.",
         "ASTRONOMY: The Sargasso Sea is defined by ocean currents, not land.",
         "PHYSICS: The speed of light is exactly 299,792,458 meters per second.",
-        "NEUROLOGY: The brain forms an estimated 100 trillion synaptic connections."
+        "GEOLOGY: The movement of tectonic plates is driven by mantle convection."
     ];
     await typeText("FACT: " + facts[Math.floor(Math.random()*facts.length)]);
 }
@@ -171,7 +188,6 @@ input.addEventListener('keydown', async (e) => {
         
         output.innerHTML += `<div style="color:white; margin-bottom: 5px;">> ${val}</div>`;
 
-        // CITATION PROTOCOL
         if (val.includes("cite") || val.includes("mla") || val.includes("apa")) {
             azulSprite.src = "flying-azul-front-facing.png";
             if (val.includes("this") && lastResult) {
@@ -187,14 +203,14 @@ input.addEventListener('keydown', async (e) => {
             lastResult = data;
             sessionLog.unshift(`[${data.title}] - ${data.url}`);
             if (sessionLog.length > 5) sessionLog.pop();
-            await typeText(data.extract, data.url);
+            await typeText(data.extract, data.url, data.geo);
         } else {
             await typeText("No records found.");
         }
     }
 });
 
-window.onload = () => typeText("OMNI-AZUL ONLINE. SYSTEM READY.");
+window.onload = () => typeText("OMNI-AZUL ONLINE. COORDINATE TRACKING ENABLED.");
 </script>
 </body>
 </html>
