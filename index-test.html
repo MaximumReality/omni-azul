@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Omni-Azul: Research Partner</title>
+  <style>
+    :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); --header-bg: #111; }
+    body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
+
+    .loading-hourglass { display: inline-block; animation: flip 1.5s infinite; margin-left: 10px; }
+    @keyframes flip { 0% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } 100% { transform: rotate(180deg); } }
+
+    @media print {
+      #toolbar, #inputBar, #azulContainer, .btn-ui, #overlay { display: none !important; }
+      body { background: white; color: black; overflow: visible; }
+      #terminal { margin: 0; padding: 0; height: auto; }
+      #output { text-shadow: none; color: black; overflow: visible; }
+    }
+
+    #toolbar { 
+      position: fixed; top: 0; left: 0; width: 100%; height: 50px; 
+      background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); 
+      display: flex; align-items: center; justify-content: space-between; 
+      padding: 0 15px; box-sizing: border-box; z-index: 1500; 
+    }
+
+    #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    #guide { background: #000; border: 2px solid var(--terminal-green); padding: 25px; max-width: 400px; box-shadow: 0 0 15px var(--glow-color); }
+
+    #terminal { position: relative; width: 100%; height: calc(100dvh - 50px); margin-top: 50px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
+    #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 100px; text-shadow: 0 0 5px var(--glow-color); }
+    
+    #inputBar { 
+      position: fixed; bottom: 0; left: 0; width: 100%; 
+      padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px;
+      background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); 
+      z-index: 100; box-sizing: border-box; display: flex; align-items: center;
+    }
+
+    #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
+    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 3px; font-size: 0.8rem; }
+    
+    #azulContainer { position: fixed; bottom: 80px; right: 20px; width: 110px; z-index: 20; pointer-events: none; }
+    #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
+    .bobbing { animation: bob 3s ease-in-out infinite; }
+    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    a { color: #fff; text-decoration: underline; }
+
+    .fact-text { 
+      color: #ffb000; 
+      text-shadow: 0 0 8px rgba(255, 176, 0, 0.7);
+      border-left: 2px solid #ffb000;
+      padding-left: 10px;
+      margin: 10px 0;
+    }
+
+   
+
+  </style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="guide">
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v2.5</h2>
+    <p>• <strong>SEARCH:</strong> High-fidelity academic logic.</p>
+    <p>• <strong>FACT:</strong> Random STEAM data protocols.</p>
+    <p>• <strong>LOG:</strong> Session history with citations.</p>
+    <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
+  </div>
+</div>
+
+<div id="toolbar">
+  <a href="https://maximumreality.xyz" class="btn-ui" style="text-decoration:none;">🏡</a>
+  <div style="display:flex; gap:8px;">
+    <button class="btn-ui" onclick="triggerFact()">FACT</button>
+    <button class="btn-ui" onclick="showLog()">📝</button>
+    <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
+    <button class="btn-ui" onclick="window.print()">🖨️</button>
+    <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
+  </div>
+</div>
+
+<div id="terminal">
+  <div id="output"></div>
+  <div id="inputBar"><span>> </span><input type="text" id="userInput" autofocus autocomplete="off" spellcheck="false"></div>
+</div>
+
+<div id="azulContainer" class="bobbing">
+  <img id="azulSprite" src="waiting_azul.png">
+</div>
+
+<script>
+let sessionLog = []; 
+
+const azulFacts = [
+    "PHYSIOLOGY: Distraction osteogenesis uses mechanical tension to stimulate osteoblastic activity and lengthen bone tissue.",
+    "QUANTUM: Entanglement occurs when particles become linked such that the state of one instantaneously influences the other regardless of distance.",
+    "ASTRONOMY: The observable universe contains an estimated 2 trillion galaxies, each containing billions of stellar systems.",
+    "NEUROLOGY: The human brain contains approximately 86 billion neurons, forming an estimated 100 trillion synaptic connections.",
+    "BOTANY: Mycelial networks facilitate nutrient and information exchange between disparate plant species via a subterranean 'wood wide web'.",
+    "PHYSICS: The Chandrasekhar limit (1.4 solar masses) determines the maximum mass of a stable white dwarf star before gravitational collapse.",
+    "BIOCHEMISTRY: ATP (Adenosine triphosphate) serves as the primary energy currency for all cellular metabolic processes.",
+    "GEOLOGY: The movement of tectonic plates is driven by mantle convection currents and the gravitational pull of subducting slabs.",
+    "MATHEMATICS: The Golden Ratio (Phi ≈ 1.618) describes logarithmic spirals found in phyllotaxis and galactic structures.",
+    "THERMODYNAMICS: The Second Law states that the total entropy of an isolated system can never decrease over time.",
+    "COMPUTING: Bit depth determines the number of possible values that can be represented in a digital signal.",
+    "OPTICS: The speed of light in a vacuum is exactly 299,792,458 meters per second.",
+    "GENETICS: DNA is composed of four nucleotide bases: adenine (A), cytosine (C), guanine (G), and thymine (T).",
+    "CHEMISTRY: The periodic table currently consists of 118 confirmed chemical elements.",
+    "METEOROLOGY: The Coriolis effect, caused by Earth's rotation, deflects moving air to the right in the Northern Hemisphere."
+];
+
+const output = document.getElementById('output');
+const input = document.getElementById('userInput');
+const azulSprite = document.getElementById('azulSprite');
+
+async function triggerFact() {
+    const randomFact = azulFacts[Math.floor(Math.random() * azulFacts.length)];
+    azulSprite.src = "hover-azul.png";
+    let factContainer = document.createElement("div"); 
+    factContainer.className = "fact-text";
+    output.appendChild(factContainer);
+    let fullText = `[FACT PROTOCOL]: ${randomFact}`;
+    for (let char of fullText) {
+        factContainer.textContent += char; 
+        output.scrollTop = output.scrollHeight;
+        await new Promise(r => setTimeout(r, 15));
+    }
+    azulSprite.src = "waiting_azul.png";
+}
+
+function toggleAmber() {
+    const root = document.documentElement;
+    const isAmber = root.style.getPropertyValue('--terminal-green') === '#ffb000';
+    root.style.setProperty('--terminal-green', isAmber ? '#00ff41' : '#ffb000');
+    root.style.setProperty('--glow-color', isAmber ? 'rgba(0, 255, 65, 0.6)' : 'rgba(255, 176, 0, 0.6)');
+}
+
+async function typeText(text, url = null, geo = null) {
+    azulSprite.src = "idle_azul.png";
+    let messageSpan = document.createElement("div"); 
+    messageSpan.style.marginBottom = "15px";
+    output.appendChild(messageSpan);
+    let displayGeo = geo ? `\n\nCOORDINATES: ${geo}` : "";
+    let fullText = text + displayGeo;
+    for (let char of fullText) {
+        messageSpan.textContent += char; 
+        output.scrollTop = output.scrollHeight;
+        await new Promise(r => setTimeout(r, 12));
+    }
+    if (url) {
+        const linkAnchor = document.createElement("a");
+        linkAnchor.href = url; linkAnchor.target = "_blank";
+        linkAnchor.textContent = "\n[SOURCE: VIEW ACADEMIC ARCHIVE]";
+        messageSpan.appendChild(linkAnchor);
+    }
+    azulSprite.src = "waiting_azul.png";
+    output.scrollTop = output.scrollHeight;
+}
+
+async function showLog() {
+    azulSprite.src = "idle_azul.png";
+    let logContainer = document.createElement("div");
+    logContainer.style.border = "1px dashed var(--terminal-green)";
+    logContainer.style.padding = "10px";
+    logContainer.style.margin = "10px 0";
+    output.appendChild(logContainer);
+    if (sessionLog.length === 0) {
+        await typeText("LOG ERROR: No session data found in active RAM.");
+        return;
+    }
+    let logText = "--- RECENT ACADEMIC SESSIONS ---\n";
+    sessionLog.forEach((entry, i) => {
+        logText += `${i + 1}. QUERY: [${entry.query}]\n   CITE: ${entry.citation}\n\n`;
+    });
+    await typeText(logText);
+}
+
+async function searchWiki(query, signal) {
+    azulSprite.src = "hover-azul.png";
+    try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=extracts|coordinates&exintro&explaintext&format=json&origin=*`;
+        const res = await fetch(searchUrl, { signal });
+        const data = await res.json();
+        if (!data.query) return null;
+        const page = Object.values(data.query.pages)[0];
+        return {
+            title: page.title,
+            extract: page.extract,
+            url: `https://en.wikipedia.org/?curid=${page.pageid}`,
+            geo: page.coordinates ? `${page.coordinates[0].lat.toFixed(4)}°N, ${page.coordinates[0].lon.toFixed(4)}°W` : null
+        };
+    } catch (e) { return null; }
+}
+
+async function handleQuery(q) {
+    let val = q.toLowerCase().trim();
+
+    // 1. LOCAL MATH CORE
+    if (val.includes("square root") || val.includes("rms") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
+        try {
+            let mathQuery = val.replace("square root of", "Math.sqrt(").replace("square root", "Math.sqrt");
+            if (mathQuery.includes("Math.sqrt") && !mathQuery.includes(")")) mathQuery += ")";
+            return { text: `MATHEMATICAL PRECISION: ${val} = ${eval(mathQuery.replace('x', '*'))}`, geo: "MATH_CORE" };
+        } catch (e) {}
+    }
+
+    // 2. DISCIPLINE: Terminology Filter
+    const slangMap = { 'cats': 'felines', 'dogs': 'canines', 'octopus': 'octopi', 'pigs': 'swine' };
+    for (let slang in slangMap) {
+        if (val.includes(slang)) return { text: `TERMINAL ERROR: Low-fidelity terminology. Use '${slangMap[slang]}' for academic indexing.`, geo: "LOGIC_GATE" };
+    }
+
+    // 3. REFINED SEARCH & FETCH
+    let refined = val;
+    const scienceTriggers = ["moon", "mercury", "lead", "shell", "cell"];
+    if (scienceTriggers.some(t => val.includes(t)) && !val.includes("music") && !val.includes("band")) {
+        refined += " science geology astronomy"; 
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const data = await searchWiki(refined, controller.signal);
+    clearTimeout(timeout);
+
+    if (data) {
+        const citation = `(${data.title}, 2026). Retrieved from Omni-Azul Academic Archive.`;
+        sessionLog.unshift({ query: val, citation: citation }); 
+        if (sessionLog.length > 5) sessionLog.pop();
+
+        let prefix = (val.includes("ethic") || val.includes("wrong") || val.includes("moral")) ? 
+            `ETHICAL PROTOCOL: Regarding '${data.title}', science defines the 'how,' ethics questions the 'why.'\n\n` : "";
+        return { text: prefix + data.extract, url: data.url, geo: data.geo };
+    }
+    return { text: "No academic record found. Increase query precision." };
+}
+
+input.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+        const val = input.value;
+        if (!val) return;
+        input.value = "";
+        const line = document.createElement("div");
+        line.style.color = "white";
+        line.textContent = `> ${val}`;
+        output.appendChild(line);
+        const loadingLine = document.createElement("div");
+        loadingLine.innerHTML = `AZUL: SEARCHING ARCHIVES... <span class="loading-hourglass">⌛</span>`;
+        output.appendChild(loadingLine);
+        const res = await handleQuery(val);
+        output.removeChild(loadingLine);
+        await typeText(`AZUL: ${res.text}`, res.url, res.geo);
+    }
+});
+
+window.onload = () => typeText("OMNI-AZUL v2.5 ONLINE. SUBJECT LOCK ACTIVE.");
+</script>
+</body>
+</html>
