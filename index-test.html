@@ -157,6 +157,13 @@ if (val.includes("pizza invented")) {
 if (val.includes("circumference") && val.includes("earth")) {
     refinedQuery = "Earth's circumference";
 }
+// Add to your handleQuery refinement block
+if (val.includes("light year")) {
+    refinedQuery = "Light-year distance astronomy";
+}
+if (val.includes("sweat") && val.includes("pig")) {
+    refinedQuery = "Pig thermoregulation";
+}
 
 
         const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchSubject)}&gsrlimit=1&prop=extracts|pageimages|coordinates&exintro&explaintext&format=json&origin=*`;
