@@ -64,8 +64,8 @@
   <div id="guide">
     <h2 style="margin-top:0; color:white;">OMNI-AZUL v2.5</h2>
     <p>• <strong>SEARCH:</strong> High-fidelity academic logic.</p>
-    <p>• <strong>AMBER:</strong> Night-shift optimized toggle.</p>
-    <p>• <strong>FIXED:</strong> Input lock & search timeouts.</p>
+    <p>• <strong>FACT:</strong> Random STEAM data protocols.</p>
+    <p>• <strong>LOG:</strong> Session history with citations.</p>
     <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
   </div>
 </div>
@@ -73,12 +73,14 @@
 <div id="toolbar">
   <a href="https://maximumreality.xyz" class="btn-ui" style="text-decoration:none;">🏡</a>
   <div style="display:flex; gap:8px;">
-    <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
-    <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
-    <button class="btn-ui" onclick="window.print()">🖨️</button>
     <button class="btn-ui" onclick="triggerFact()">FACT</button>
-    <button class="btn-ui" onclick="showLog()">📝</button> <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
+    <button class="btn-ui" onclick="showLog()">📝</button>
+    <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
+    <button class="btn-ui" onclick="window.print()">🖨️</button>
+    <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
   </div>
+</div>
+
 </div>
 
 <div id="terminal">
