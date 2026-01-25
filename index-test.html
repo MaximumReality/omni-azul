@@ -3,75 +3,57 @@
 <head>
   <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Omni-Azul: Research Partner</title>
-  <link rel="icon" type="image/png" href="IMG_3355.png">
-  <link rel="apple-touch-icon" href="IMG_3355.png">
-
   <style>
     :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); --header-bg: #111; }
     body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
 
     /* The Flipping Hourglass Animation */
-    .loading-hourglass {
-        display: inline-block;
-        animation: flip 1.5s infinite;
-        margin-left: 10px;
-    }
-    @keyframes flip {
-        0% { transform: rotate(0deg); }
-        50% { transform: rotate(180deg); }
-        100% { transform: rotate(180deg); }
-    }
+    .loading-hourglass { display: inline-block; animation: flip 1.5s infinite; margin-left: 10px; }
+    @keyframes flip { 0% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } 100% { transform: rotate(180deg); } }
 
     /* Print Formatting */
     @media print {
       #toolbar, #inputBar, #azulContainer, .btn-ui, #overlay { display: none !important; }
       body { background: white; color: black; overflow: visible; }
-      #terminal { margin: 0; padding: 0; height: auto; margin-top: 0; }
+      #terminal { margin: 0; padding: 0; height: auto; }
       #output { text-shadow: none; color: black; overflow: visible; }
-      a { color: black; text-decoration: underline; font-weight: bold; }
+      a { color: black; text-decoration: underline; }
     }
 
-    /* Toolbar */
     #toolbar { 
       position: fixed; top: 0; left: 0; width: 100%; height: 50px; 
       background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); 
       display: flex; align-items: center; justify-content: space-between; 
       padding: 0 15px; box-sizing: border-box; z-index: 1500; 
     }
-    .toolbar-group { display: flex; gap: 8px; }
 
-    /* Instructions Overlay */
     #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    #guide { background: #000; border: 2px solid var(--terminal-green); padding: 25px; max-width: 400px; text-align: left; box-shadow: 0 0 15px var(--glow-color); }
+    #guide { background: #000; border: 2px solid var(--terminal-green); padding: 25px; max-width: 400px; box-shadow: 0 0 15px var(--glow-color); }
 
-    /* Workspace */
-    #terminal { 
-      position: relative; width: 100%; height: calc(100dvh - 50px); 
-      margin-top: 50px; padding: 20px; box-sizing: border-box; 
-      display: flex; flex-direction: column; 
-    }
-    #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 90px; text-shadow: 0 0 5px var(--glow-color); }
+    #terminal { position: relative; width: 100%; height: calc(100dvh - 50px); margin-top: 50px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
+    #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 100px; text-shadow: 0 0 5px var(--glow-color); }
     
     #inputBar { 
-  position: fixed; 
-  bottom: constant(safe-area-inset-bottom); bottom: env(safe-area-inset-bottom);/* Changed from 20px */
-  left: 0; 
-  width: 100%; 
-  padding: 15px;
-  background: rgba(0,0,0,0.95); 
-  border-top: 1px solid var(--terminal-green); 
-  z-index: 100;
-  box-sizing: border-box;
-}
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      width: 100%; 
+      /* iPhone 14 Pro Max Safe Area Fix */
+      padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px;
+      background: rgba(0,0,0,0.95); 
+      border-top: 1px solid var(--terminal-green); 
+      z-index: 100;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+    }
 
     #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
+    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 3px; font-size: 0.8rem; }
     
-    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; text-decoration: none; border-radius: 3px; font-size: 0.8rem; }
-    #homeBtn { font-size: 1.2rem; background: transparent; color: var(--terminal-green); border: 1px solid var(--terminal-green); }
-
-    #azulContainer { position: fixed; bottom: 20px; right: 20px; width: 110px; z-index: 20; pointer-events: none; }
+    #azulContainer { position: fixed; bottom: 80px; right: 20px; width: 110px; z-index: 20; pointer-events: none; }
     #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
     .bobbing { animation: bob 3s ease-in-out infinite; }
     @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
@@ -82,20 +64,19 @@
 
 <div id="overlay">
   <div id="guide">
-    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.7</h2>
-    <p>• <strong>SEARCH:</strong> Any topic for an academic summary.</p>
-    <p>• <strong>CITE:</strong> Type 'cite' after a search for MLA.</p>
-    <p>• <strong>AMBER:</strong> Switch to eye-friendly amber mode.</p>
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.6</h2>
+    <p>• <strong>SEARCH:</strong> Distraction-free academic data.</p>
+    <p>• <strong>SAFE-AREA:</strong> Optimized for mobile terminals.</p>
+    <p>• <strong>SUBJECT LOCK:</strong> Context-aware research.</p>
     <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
   </div>
 </div>
 
 <div id="toolbar">
-  <a href="https://maximumreality.xyz" class="btn-ui" id="homeBtn">🏡</a>
-  <div class="toolbar-group">
+  <a href="https://maximumreality.xyz" class="btn-ui" style="text-decoration:none;">🏡</a>
+  <div style="display:flex; gap:8px;">
     <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
     <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
-    <button class="btn-ui" onclick="showTrivia()">FACT</button>
     <button class="btn-ui" onclick="window.print()">🖨️</button>
   </div>
 </div>
@@ -115,23 +96,11 @@ const input = document.getElementById('userInput');
 const azulSprite = document.getElementById('azulSprite');
 let lastResult = null;
 
-const triviaFacts = [
-    "QUANTUM: Atoms are 99.9999% empty space.",
-    "ANATOMY: Your blood vessels could circle the Earth 4 times.",
-    "SPACE: One day on Venus is longer than its entire year.",
-    "BIOLOGY: An octopus has three hearts and blue blood."
-];
-
 function toggleAmber() {
     const root = document.documentElement;
     const isAmber = root.style.getPropertyValue('--terminal-green') === '#ffb000';
-    if (isAmber) {
-        root.style.setProperty('--terminal-green', '#00ff41');
-        root.style.setProperty('--glow-color', 'rgba(0, 255, 65, 0.6)');
-    } else {
-        root.style.setProperty('--terminal-green', '#ffb000'); 
-        root.style.setProperty('--glow-color', 'rgba(255, 176, 0, 0.6)');
-    }
+    root.style.setProperty('--terminal-green', isAmber ? '#00ff41' : '#ffb000');
+    root.style.setProperty('--glow-color', isAmber ? 'rgba(0, 255, 65, 0.6)' : 'rgba(255, 176, 0, 0.6)');
 }
 
 async function typeText(text, url = null, geo = null) {
@@ -158,7 +127,6 @@ async function typeText(text, url = null, geo = null) {
         linkAnchor.style.marginTop = "8px";
         messageSpan.appendChild(linkAnchor);
     }
-    
     azulSprite.src = "waiting_azul.png";
     output.scrollTop = output.scrollHeight;
 }
@@ -166,28 +134,23 @@ async function typeText(text, url = null, geo = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        // 1. NO STRIPPING: We use the full query to keep the subject (Dog/Cat)
-        // We only add a 'booster' to help Wikipedia find the biology section
-        let searchTerms = query.toLowerCase();
-        
-        if (searchTerms.includes("pain") || searchTerms.includes("feel")) {
-            searchTerms += " animal physiology";
+        // SUBJECT LOCK: We keep the query intact but add context for academic precision
+        let searchSubject = query.toLowerCase();
+        if (searchSubject.includes("pain") || searchSubject.includes("ethical")) {
+            searchSubject += " animal physiology ethics";
         }
 
-        // 2. DEEP SEARCH: This finds the specific article title
-        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerms)}&format=json&origin=*&srlimit=1`;
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchSubject)}&format=json&origin=*&srlimit=1`;
         const searchRes = await fetch(searchUrl);
         const searchData = await searchRes.json();
 
         if (searchData.query.search.length > 0) {
             const title = searchData.query.search[0].title;
-
-            // 3. SUMMARY: Get the clean academic text for that specific title
             const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
             const sumRes = await fetch(sumUrl);
             const sumData = await sumRes.json();
 
-            // 4. GEO COORDINATES: Ensuring the 'Tracker' lore stays active
+            // TRACKER LOGIC: Fetch Coordinates
             const coordUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=${encodeURIComponent(title)}&format=json&origin=*`;
             const cRes = await fetch(coordUrl);
             const cData = await cRes.json();
@@ -199,54 +162,23 @@ async function searchWiki(query) {
                 coords = `${page.coordinates[0].lat.toFixed(4)}°N, ${page.coordinates[0].lon.toFixed(4)}°W`;
             }
 
-            return { 
-                title: sumData.title, 
-                extract: sumData.extract, 
-                url: sumData.content_urls.desktop.page,
-                geo: coords
-            };
+            return { title: sumData.title, extract: sumData.extract, url: sumData.content_urls.desktop.page, geo: coords };
         }
     } catch (e) { return null; }
     return null;
 }
 
-
-
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
-    
     const ethicsWords = ["should", "moral", "right", "wrong", "ethical", "cruel", "humane"];
     const isEthicsQuery = ethicsWords.some(word => val.includes(word));
 
-    if (isEthicsQuery) {
-        azulSprite.src = "flying-azul-front-facing.png"; 
-        const data = await searchWiki(val);
-        if (data) {
-            return { 
-                text: `ETHICAL PROTOCOL: Regarding '${data.title}', there is a significant gap between biological data and moral intuition. While science defines the 'how,' ethics questions the 'why.'\n\n${data.extract}`,
-                url: data.url 
-            };
-        }
-    }
-
-    if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
-        azulSprite.src = "flying-azul-front-facing.png";
-        if ((val === "cite" || val === "cite this") && lastResult) {
-            const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-            return { text: `MLA CITATION:\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`, url: lastResult.url };
-        }
-        return { 
-            text: "CITATION PROTOCOL: Refer to the Purdue Online Writing Lab (OWL) for gold-standard MLA, APA, and Chicago formatting.", 
-            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
-        };
-    }
-
     const data = await searchWiki(val);
     if (data) {
-        lastResult = { title: data.title, url: data.url };
-        return { text: data.extract, url: data.url, geo: data.geo };
+        lastResult = data;
+        let prefix = isEthicsQuery ? `ETHICAL PROTOCOL: Regarding '${data.title}', there is a significant gap between biological data and moral intuition. While science defines the 'how,' ethics questions the 'why.'\n\n` : "";
+        return { text: prefix + data.extract, url: data.url, geo: data.geo };
     }
-    
     return { text: "No academic record found. Refine query parameters." };
 }
 
@@ -255,7 +187,6 @@ input.addEventListener('keydown', async (e) => {
         const val = input.value;
         if (!val) return;
         input.value = "";
-        
         const line = document.createElement("div");
         line.style.color = "white";
         line.textContent = `> ${val}`;
@@ -266,23 +197,12 @@ input.addEventListener('keydown', async (e) => {
         output.appendChild(loadingLine);
         
         const res = await handleQuery(val);
-        
         output.removeChild(loadingLine);
         await typeText(`AZUL: ${res.text}`, res.url, res.geo);
     }
 });
 
-function showTrivia() {
-    const fact = triviaFacts[Math.floor(Math.random() * triviaFacts.length)];
-    typeText(`OMNI-FACT: ${fact}`);
-}
-
-window.onload = () => typeText("OMNI-AZUL v1.7 ONLINE.");
+window.onload = () => typeText("OMNI-AZUL v1.6 ONLINE. SUBJECT LOCK ACTIVE.");
 </script>
-
-
-
-
-
 </body>
 </html>
