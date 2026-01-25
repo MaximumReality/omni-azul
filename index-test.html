@@ -64,7 +64,7 @@
 
 <div id="overlay">
   <div id="guide">
-    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.6</h2>
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.7</h2>
     <p>• <strong>SEARCH:</strong> Distraction-free academic data.</p>
     <p>• <strong>SAFE-AREA:</strong> Optimized for mobile terminals.</p>
     <p>• <strong>SUBJECT LOCK:</strong> Context-aware research.</p>
@@ -138,6 +138,8 @@ async function searchWiki(query) {
         let searchSubject = query.toLowerCase();
         if (searchSubject.includes("pain") || searchSubject.includes("ethical")) {
             searchSubject += " animal physiology ethics";
+          searchSubject += " -movie -film -manga"; // This tells Wikipedia: "No movies allowed!"
+
         }
 
         const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchSubject)}&format=json&origin=*&srlimit=1`;
@@ -202,7 +204,7 @@ input.addEventListener('keydown', async (e) => {
     }
 });
 
-window.onload = () => typeText("OMNI-AZUL v1.6 ONLINE. SUBJECT LOCK ACTIVE.");
+window.onload = () => typeText("OMNI-AZUL v1.7 ONLINE. SUBJECT LOCK ACTIVE.");
 </script>
 </body>
 </html>
