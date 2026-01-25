@@ -224,11 +224,7 @@ async function handleQuery(q) {
         if (val.includes(slang)) return { text: `TERMINAL ERROR: Low-fidelity terminology. Use '${slangMap[slang]}' for academic indexing.`, geo: "LOGIC_GATE" };
     }
 
-    // 3. REFINED SEARCH & FETCH
-    let refined = val;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
+  
   // A "Soft Filter" for the Universal Utility
 let refined = val;
 const scienceTriggers = ["moon", "mercury", "lead", "shell", "cell"];
@@ -237,6 +233,13 @@ if (scienceTriggers.some(t => val.includes(t)) && !val.includes("music") && !val
     // We gently nudge the API toward the "Whole" systems view
     refined += " science geology astronomy"; 
 }
+  
+
+    // 3. REFINED SEARCH & FETCH
+    let refined = val;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
 
     const data = await searchWiki(refined, controller.signal); // DATA IS DEFINED HERE
     clearTimeout(timeout);
