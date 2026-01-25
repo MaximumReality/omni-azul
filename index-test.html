@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omni-Azul: Research Partner</title>
+  <link rel="icon" type="image/png" href="IMG_3355.png">
+  <link rel="apple-touch-icon" href="IMG_3355.png">
+
+  <style>
+    :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); --header-bg: #111; }
+    body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
+
+    /* The Flipping Hourglass Animation */
+    .loading-hourglass {
+        display: inline-block;
+        animation: flip 1.5s infinite;
+        margin-left: 10px;
+    }
+    @keyframes flip {
+        0% { transform: rotate(0deg); }
+        50% { transform: rotate(180deg); }
+        100% { transform: rotate(180deg); }
+    }
+
+    /* Print Formatting */
+    @media print {
+      #toolbar, #inputBar, #azulContainer, .btn-ui, #overlay { display: none !important; }
+      body { background: white; color: black; overflow: visible; }
+      #terminal { margin: 0; padding: 0; height: auto; margin-top: 0; }
+      #output { text-shadow: none; color: black; overflow: visible; }
+      a { color: black; text-decoration: underline; font-weight: bold; }
+    }
+
+    /* Toolbar */
+    #toolbar { 
+      position: fixed; top: 0; left: 0; width: 100%; height: 50px; 
+      background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); 
+      display: flex; align-items: center; justify-content: space-between; 
+      padding: 0 15px; box-sizing: border-box; z-index: 1500; 
+    }
+    .toolbar-group { display: flex; gap: 8px; }
+
+    /* Instructions Overlay */
+    #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    #guide { background: #000; border: 2px solid var(--terminal-green); padding: 25px; max-width: 400px; text-align: left; box-shadow: 0 0 15px var(--glow-color); }
+
+    /* Workspace */
+    #terminal { 
+      position: relative; width: 100%; height: calc(100dvh - 50px); 
+      margin-top: 50px; padding: 20px; box-sizing: border-box; 
+      display: flex; flex-direction: column; 
+    }
+    #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 90px; text-shadow: 0 0 5px var(--glow-color); }
+    
+    #inputBar { 
+  position: fixed; 
+  bottom: constant(safe-area-inset-bottom); bottom: env(safe-area-inset-bottom);/* Changed from 20px */
+  left: 0; 
+  width: 100%; 
+  padding: 15px;
+  background: rgba(0,0,0,0.95); 
+  border-top: 1px solid var(--terminal-green); 
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+    #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
+    
+    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; text-decoration: none; border-radius: 3px; font-size: 0.8rem; }
+    #homeBtn { font-size: 1.2rem; background: transparent; color: var(--terminal-green); border: 1px solid var(--terminal-green); }
+
+    #azulContainer { position: fixed; bottom: 20px; right: 20px; width: 110px; z-index: 20; pointer-events: none; }
+    #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
+    .bobbing { animation: bob 3s ease-in-out infinite; }
+    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    a { color: #fff; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="guide">
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.5</h2>
+    <p>• <strong>SEARCH:</strong> Any topic for an academic summary.</p>
+    <p>• <strong>CITE:</strong> Type 'cite' after a search for MLA.</p>
+    <p>• <strong>AMBER:</strong> Switch to eye-friendly amber mode.</p>
+    <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
+  </div>
+</div>
+
+<div id="toolbar">
+  <a href="https://maximumreality.xyz" class="btn-ui" id="homeBtn">🏡</a>
+  <div class="toolbar-group">
+    <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
+    <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
+    <button class="btn-ui" onclick="showTrivia()">FACT</button>
+    <button class="btn-ui" onclick="window.print()">🖨️</button>
+  </div>
+</div>
+
+<div id="terminal">
+  <div id="output"></div>
+  <div id="inputBar"><span>> </span><input type="text" id="userInput" autofocus autocomplete="off" spellcheck="false"></div>
+</div>
+
+<div id="azulContainer" class="bobbing">
+  <img id="azulSprite" src="waiting_azul.png">
+</div>
+
+<script>
+const output = document.getElementById('output');
+const input = document.getElementById('userInput');
+const azulSprite = document.getElementById('azulSprite');
+let lastResult = null;
+
+const triviaFacts = [
+    "QUANTUM: Atoms are 99.9999% empty space.",
+    "ANATOMY: Your blood vessels could circle the Earth 4 times.",
+    "SPACE: One day on Venus is longer than its entire year.",
+    "BIOLOGY: An octopus has three hearts and blue blood."
+];
+
+function toggleAmber() {
+    const root = document.documentElement;
+    const isAmber = root.style.getPropertyValue('--terminal-green') === '#ffb000';
+    if (isAmber) {
+        root.style.setProperty('--terminal-green', '#00ff41');
+        root.style.setProperty('--glow-color', 'rgba(0, 255, 65, 0.6)');
+    } else {
+        root.style.setProperty('--terminal-green', '#ffb000'); 
+        root.style.setProperty('--glow-color', 'rgba(255, 176, 0, 0.6)');
+    }
+}
+
+async function typeText(text, url = null, geo = null) {
+    azulSprite.src = "idle_azul.png";
+    let messageSpan = document.createElement("div"); 
+    messageSpan.style.marginBottom = "15px";
+    output.appendChild(messageSpan);
+    
+    let displayGeo = geo ? `\n\nCOORDINATES: ${geo}` : "";
+    let fullText = text + displayGeo;
+    
+    for (let char of fullText) {
+        messageSpan.textContent += char; 
+        output.scrollTop = output.scrollHeight;
+        await new Promise(r => setTimeout(r, 15));
+    }
+
+    if (url) {
+        const linkAnchor = document.createElement("a");
+        linkAnchor.href = url;
+        linkAnchor.target = "_blank";
+        linkAnchor.textContent = "[SOURCE: VIEW ACADEMIC ARCHIVE]";
+        linkAnchor.style.display = "block";
+        linkAnchor.style.marginTop = "8px";
+        messageSpan.appendChild(linkAnchor);
+    }
+    
+    azulSprite.src = "waiting_azul.png";
+    output.scrollTop = output.scrollHeight;
+}
+
+async function searchWiki(query) {
+    azulSprite.src = "hover-azul.png";
+    try {
+        //// 1. IMPROVED SUBJECT SHARPENER
+let subject = query.toLowerCase()
+    .replace(/\b(is|it|to|should|wrong|right|do|feel|have|acceptable|the|a|an)\b/g, "")
+    .trim();
+
+// 2. SPECIFIC CONTEXT PROTECTOR
+if (query.toLowerCase().includes("meat")) subject = "Ethics of eating meat";
+if (subject.length < 3) subject = query; // Fallback to full query
+// Add this near your context protectors
+if (query.toLowerCase().includes("feel pain") || query.toLowerCase().includes("jellyfish")) {
+    subject = "Nervous system of jellyfish"; 
+}
+// Add this to your context protectors
+if (query.toLowerCase().includes("jellyfish")) {
+    subject = "Jellyfish nervous system"; 
+}
+
+
+        // 3. SEARCH WIKIPEDIA
+        const openUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(subject)}&limit=1&namespace=0&format=json&origin=*`;
+        const openRes = await fetch(openUrl);
+        const openData = await openRes.json();
+        
+        let title = (openData && openData[1].length > 0) ? openData[1][0] : null;
+
+        if (!title) {
+            const listUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+            const listRes = await fetch(listUrl);
+            const listData = await listRes.json();
+            if (listData && listData.query.search.length > 0) {
+                title = listData.query.search[0].title;
+            }
+        }
+
+        if (title) {
+            const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
+            const sumRes = await fetch(sumUrl);
+            const sumData = await sumRes.json();
+
+            const coordUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=${encodeURIComponent(title)}&format=json&origin=*`;
+            const cRes = await fetch(coordUrl);
+            const cData = await cRes.json();
+            const pageId = Object.keys(cData.query.pages)[0];
+            const page = cData.query.pages[pageId];
+
+            let coords = null;
+            if (page.coordinates) {
+                coords = `${page.coordinates[0].lat.toFixed(4)}°N, ${page.coordinates[0].lon.toFixed(4)}°W`;
+            }
+
+            return { 
+                title: sumData.title, 
+                extract: sumData.extract, 
+                url: sumData.content_urls.desktop.page,
+                geo: coords
+            };
+        }
+    } catch (e) { return null; }
+    return null;
+}
+
+async function handleQuery(q) {
+    let val = q.toLowerCase().trim();
+    
+    const ethicsWords = ["should", "moral", "right", "wrong", "ethical", "cruel", "humane"];
+    const isEthicsQuery = ethicsWords.some(word => val.includes(word));
+
+    if (isEthicsQuery) {
+        azulSprite.src = "flying-azul-front-facing.png"; 
+        const data = await searchWiki(val);
+        if (data) {
+            return { 
+                text: `ETHICAL PROTOCOL: Regarding '${data.title}', there is a significant gap between biological data and moral intuition. While science defines the 'how,' ethics questions the 'why.'\n\n${data.extract}`,
+                url: data.url 
+            };
+        }
+    }
+
+    if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
+        azulSprite.src = "flying-azul-front-facing.png";
+        if ((val === "cite" || val === "cite this") && lastResult) {
+            const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            return { text: `MLA CITATION:\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`, url: lastResult.url };
+        }
+        return { 
+            text: "CITATION PROTOCOL: Refer to the Purdue Online Writing Lab (OWL) for gold-standard MLA, APA, and Chicago formatting.", 
+            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
+        };
+    }
+
+    const data = await searchWiki(val);
+    if (data) {
+        lastResult = { title: data.title, url: data.url };
+        return { text: data.extract, url: data.url, geo: data.geo };
+    }
+    
+    return { text: "No academic record found. Refine query parameters." };
+}
+
+input.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+        const val = input.value;
+        if (!val) return;
+        input.value = "";
+        
+        const line = document.createElement("div");
+        line.style.color = "white";
+        line.textContent = `> ${val}`;
+        output.appendChild(line);
+        
+        const loadingLine = document.createElement("div");
+        loadingLine.innerHTML = `AZUL: SEARCHING ARCHIVES... <span class="loading-hourglass">⌛</span>`;
+        output.appendChild(loadingLine);
+        
+        const res = await handleQuery(val);
+        
+        output.removeChild(loadingLine);
+        await typeText(`AZUL: ${res.text}`, res.url, res.geo);
+    }
+});
+
+function showTrivia() {
+    const fact = triviaFacts[Math.floor(Math.random() * triviaFacts.length)];
+    typeText(`OMNI-FACT: ${fact}`);
+}
+
+window.onload = () => typeText("OMNI-AZUL v1.5 ONLINE.");
+</script>
+
+
+
+
+
+</body>
+</html>
