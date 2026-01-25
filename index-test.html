@@ -147,6 +147,17 @@ async function searchWiki(query) {
         if (val.includes("saragossa") || val.includes("sargasso")) {
             searchSubject = "Sargasso Sea -saint -vincent";
         }
+      // 1. DISTANCE & ORIGIN SHARPENER
+if (val.includes("light year")) {
+    refinedQuery = "Light-year distance";
+}
+if (val.includes("pizza invented")) {
+    refinedQuery = "History of pizza Naples"; // Specifically targets the origin
+}
+if (val.includes("circumference") && val.includes("earth")) {
+    refinedQuery = "Earth's circumference";
+}
+
 
         const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchSubject)}&gsrlimit=1&prop=extracts|pageimages|coordinates&exintro&explaintext&format=json&origin=*`;
         
