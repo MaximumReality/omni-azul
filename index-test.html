@@ -169,55 +169,56 @@ async function searchWiki(query) {
 
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
+    if (!val) return { text: "SYSTEM IDLE: Awaiting input..." };
 
-    // 1. MATH FIREWALL (Fixes the Titanic/RMS glitch)
-    if (val.includes("square root") || val.includes("rms") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
+    // 1. SAFE MATH CORE (Calculates locally, no Wikipedia drift)
+    const isMath = /^[0-9+\-*/x().\s]+$/.test(val.replace('x', '*'));
+    const isSqrt = val.includes("square root");
+    
+    if (isMath || isSqrt) {
         try {
-            let mathQuery = val.replace("square root of", "Math.sqrt(").replace("square root", "Math.sqrt");
-            if (mathQuery.includes("Math.sqrt") && !mathQuery.includes(")")) mathQuery += ")";
+            let mathExpr = val.replace(/x/g, '*').replace(/square root of /g, 'Math.sqrt(');
+            if (isSqrt && !mathExpr.includes(')')) mathExpr += ')';
             
-            // Handle RMS locally
-            if (val.includes("rms of")) {
+            // Special handling for RMS (Root Mean Square)
+            if (val.includes("rms")) {
                 let nums = val.match(/\d+/g).map(Number);
-                let rms = Math.sqrt(nums.map(x => x * x).reduce((a, b) => a + b) / nums.length);
-                return { text: `MATHEMATICAL PRECISION: RMS of ${nums} = ${rms.toFixed(4)}`, geo: "MATH_CORE" };
+                if (nums.length > 0) {
+                    let rms = Math.sqrt(nums.reduce((a, b) => a + (b * b), 0) / nums.length);
+                    return { text: `MATHEMATICAL PRECISION: RMS of [${nums}] = ${rms.toFixed(4)}`, geo: "MATH_NODE" };
+                }
             }
 
-            let result = eval(mathQuery.replace('x', '*'));
-            return { text: `MATHEMATICAL PRECISION: ${val} = ${result}`, geo: "MATH_CORE" };
-        } catch (e) { /* fall through to search if math 
+            const result = eval(mathExpr);
+            return { text: `MATHEMATICAL PRECISION: ${val} = ${result}`, geo: "MATH_NODE" };
+        } catch (e) { /* If math fails, it will attempt a search instead */ }
+    }
 
-    // 2. SEARCH WITH DISCIPLINE (Fixes the Lead/Musician glitch)
-    // We add "Chemical Element" or "Biology" to specific triggers
+    // 2. SEARCH ANCHORING (Prevents the 'Oldboy' and 'Musician' pivots)
     let refinedQuery = val;
-    if (val === "lead" || val.includes("lead safe")) refinedQuery = "Lead (element) toxicity";
-    if (val.includes("dogs") && val.includes("pain")) refinedQuery = "Pain in dogs";
+    if (val === "lead" || val.includes("consume lead")) refinedQuery = "Lead poisoning";
+    if (val.includes("octopus") || val.includes("octopi")) refinedQuery = "Octopus intelligence ethics";
+    if (val.includes("dog") && val.includes("pain")) refinedQuery = "Pain in animals";
 
     const data = await searchWiki(refinedQuery);
     
     if (data) {
-        // Stop the "Oldboy" loop - if the title contains "film" but we didn't ask for a film
-        if (data.title.toLowerCase().includes("film") && !val.includes("movie")) {
-            return { text: "TERMINAL ERROR: Academic mismatch. Use precise biological terms (e.g., 'Octopi physiology') to bypass cultural noise." };
+        // CULTURAL NOISE FILTER: If we get a movie/band but didn't ask for one
+        const noise = ["film", "movie", "band", "album", "song"];
+        const isNoise = noise.some(n => data.title.toLowerCase().includes(n));
+        const userAskedForArt = ["film", "movie", "music", "actor"].some(n => val.includes(n));
+
+        if (isNoise && !userAskedForArt) {
+            return { text: `TERMINAL ERROR: Low-fidelity match [${data.title}]. \n\nADVICE: Use precise biological or chemical terminology to bypass cultural noise.`, geo: "LOGIC_GATE" };
         }
-        
+
         let prefix = (val.includes("ethic") || val.includes("moral")) ? 
             `ETHICAL PROTOCOL: Regarding '${data.title}', science defines the 'how,' ethics questions the 'why.'\n\n` : "";
-            
+
         return { text: prefix + data.extract, url: data.url, geo: data.geo };
     }
 
-    return { text: "No academic record found. Refine query parameters." };
-}
-
-
-    // 3. ETHICAL CONTEXT (Only if query is high-quality)
-    let prefix = "";
-    if (val.includes("ethic") || val.includes("moral")) {
-        prefix = `ETHICAL PROTOCOL: Regarding '${data.title}', there is a significant gap between biological data and moral intuition. While science defines the 'how,' ethics questions the 'why.'\n\n`;
-    }
-
-    return { text: prefix + data.extract, url: data.url, geo: data.geo };
+    return { text: "TERMINAL ERROR: No academic record found. Check syntax and terminology.", geo: "VOID_NODE" };
 }
 
 input.addEventListener('keydown', async (e) => {
