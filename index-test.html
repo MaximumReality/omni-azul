@@ -77,10 +77,13 @@
     <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
     <button class="btn-ui" onclick="window.print()">🖨️</button>
   <div style="display:flex; gap:8px;">
-    <button class="btn-ui" onclick="triggerFact()">FACT</button> <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
+    <button class="btn-ui" onclick="triggerFact()">FACT</button>
+    <button class="btn-ui" onclick="showLog()">📝</button> <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
     <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
     <button class="btn-ui" onclick="window.print()">🖨️</button>
 </div>
+
+    
 
   </div>
 </div>
@@ -95,6 +98,8 @@
 </div>
 
 <script>
+  let sessionLog = []; // This is your digital short-term memory
+
   const azulFacts = [
     "NEURO-LOGIC: A neurogenic bladder represents a physical 'Packet Loss'—the hardware remains active, but the Handshake with the CPU has timed out.",
     "STELLAR ORIGINS: The Phosphorus in human DNA was forged in the heart of a Supernova. The archive of the stars is written in our marrow.",
@@ -157,6 +162,27 @@ async function typeText(text, url = null, geo = null) {
     azulSprite.src = "waiting_azul.png";
     output.scrollTop = output.scrollHeight;
 }
+  async function showLog() {
+    azulSprite.src = "idle_azul.png";
+    let logContainer = document.createElement("div");
+    logContainer.style.border = "1px dashed var(--terminal-green)";
+    logContainer.style.padding = "10px";
+    logContainer.style.margin = "10px 0";
+    output.appendChild(logContainer);
+
+    if (sessionLog.length === 0) {
+        await typeText("LOG ERROR: No session data found in active RAM.");
+        return;
+    }
+
+    let logText = "--- RECENT ACADEMIC SESSIONS ---\n";
+    sessionLog.forEach((entry, i) => {
+        logText += `${i + 1}. QUERY: [${entry.query}]\n   CITE: ${entry.citation}\n\n`;
+    });
+
+    await typeText(logText);
+}
+
 
 async function searchWiki(query, signal) {
     azulSprite.src = "hover-azul.png";
@@ -203,6 +229,13 @@ async function handleQuery(q) {
     if (["pain", "feel", "intelligent", "eat", "sweat"].some(t => val.includes(t))) refined += " biology physiology -fiction";
     if (val.includes("saragossa") || val.includes("sargasso")) refined = "Sargasso Sea";
     if (val === "lead") refined = "Lead (element)";
+
+  // Inside handleQuery, after 'data' is found:
+if (data) {
+    const citation = `(${data.title}, 2026). Retrieved from Omni-Azul Academic Archive.`;
+    sessionLog.unshift({ query: val, citation: citation }); // Add to start
+    if (sessionLog.length > 5) sessionLog.pop(); // Keep only last 5
+}
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
