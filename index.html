@@ -54,7 +54,18 @@
     }
     #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 90px; text-shadow: 0 0 5px var(--glow-color); }
     
-    #inputBar { position: fixed; bottom: 20px; left: 20px; width: calc(100% - 150px); display: flex; background: rgba(0,0,0,0.9); border-top: 1px solid var(--terminal-green); padding-top: 10px; z-index: 10; }
+    #inputBar { 
+  position: fixed; 
+  bottom: 0; /* Changed from 20px */
+  left: 0; 
+  width: 100%; 
+  padding: 15px;
+  background: rgba(0,0,0,0.95); 
+  border-top: 1px solid var(--terminal-green); 
+  z-index: 100;
+  box-sizing: border-box;
+}
+
     #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
     
     .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; text-decoration: none; border-radius: 3px; font-size: 0.8rem; }
