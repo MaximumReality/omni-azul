@@ -1,29 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Omni-Azul v2.3</title>
+  <title>Omni-Azul: Research Partner</title>
   <style>
-    :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); }
+    :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); --header-bg: #111; }
     body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
-    #toolbar { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: #111; border-bottom: 1px solid var(--terminal-green); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-sizing: border-box; z-index: 1500; }
+
+    .loading-hourglass { display: inline-block; animation: flip 1.5s infinite; margin-left: 10px; }
+    @keyframes flip { 0% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } 100% { transform: rotate(180deg); } }
+
+    @media print {
+      #toolbar, #inputBar, #azulContainer, .btn-ui, #overlay { display: none !important; }
+      body { background: white; color: black; overflow: visible; }
+      #terminal { margin: 0; padding: 0; height: auto; }
+      #output { text-shadow: none; color: black; overflow: visible; }
+    }
+
+    #toolbar { 
+      position: fixed; top: 0; left: 0; width: 100%; height: 50px; 
+      background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); 
+      display: flex; align-items: center; justify-content: space-between; 
+      padding: 0 15px; box-sizing: border-box; z-index: 1500; 
+    }
+
+    #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    #guide { background: #000; border: 2px solid var(--terminal-green); padding: 25px; max-width: 400px; box-shadow: 0 0 15px var(--glow-color); }
+
     #terminal { position: relative; width: 100%; height: calc(100dvh - 50px); margin-top: 50px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
-    #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 120px; text-shadow: 0 0 5px var(--glow-color); }
-    #inputBar { position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); z-index: 100; box-sizing: border-box; display: flex; align-items: center; }
+    #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 100px; text-shadow: 0 0 5px var(--glow-color); }
+    
+    #inputBar { 
+      position: fixed; bottom: 0; left: 0; width: 100%; 
+      padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px;
+      background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); 
+      z-index: 100; box-sizing: border-box; display: flex; align-items: center;
+    }
+
     #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
-    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 3px; }
-    #azulContainer { position: fixed; bottom: 100px; right: 20px; width: 150px; z-index: 20; pointer-events: none; }
+    .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 3px; font-size: 0.8rem; }
+    
+    #azulContainer { position: fixed; bottom: 80px; right: 20px; width: 110px; z-index: 20; pointer-events: none; }
     #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
-    .loading-hourglass { display: inline-block; animation: flip 1.5s infinite; }
-    @keyframes flip { 0% { transform: rotate(0deg); } 100% { transform: rotate(180deg); } }
+    .bobbing { animation: bob 3s ease-in-out infinite; }
+    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    a { color: #fff; text-decoration: underline; }
   </style>
 </head>
 <body>
 
+<div id="overlay">
+  <div id="guide">
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v2.4</h2>
+    <p>• <strong>SEARCH:</strong> High-fidelity academic logic.</p>
+    <p>• <strong>AMBER:</strong> Night-shift optimized toggle.</p>
+    <p>• <strong>FIXED:</strong> Input lock & search timeouts.</p>
+    <button class="btn-ui" style="width:100%; padding:10px;" onclick="document.getElementById('overlay').style.display='none'">BOOT SYSTEM</button>
+  </div>
+</div>
+
 <div id="toolbar">
-  <div style="font-weight:bold;">OMNI-AZUL v2.3</div>
-  <button class="btn-ui" onclick="document.getElementById('output').textContent='TERMINAL PURGED...'">🗑️</button>
+  <a href="https://maximumreality.xyz" class="btn-ui" style="text-decoration:none;">🏡</a>
+  <div style="display:flex; gap:8px;">
+    <button class="btn-ui" onclick="toggleAmber()">AMBER</button>
+    <button class="btn-ui" onclick="output.textContent=''; typeText('TERMINAL PURGED...')">🗑️</button>
+    <button class="btn-ui" onclick="window.print()">🖨️</button>
+  </div>
 </div>
 
 <div id="terminal">
@@ -31,36 +75,49 @@
   <div id="inputBar"><span>> </span><input type="text" id="userInput" autofocus autocomplete="off" spellcheck="false"></div>
 </div>
 
-<div id="azulContainer">
-  <img id="azulSprite" src="azul_bistro.png">
+<div id="azulContainer" class="bobbing">
+  <img id="azulSprite" src="waiting_azul.png">
 </div>
 
 <script>
 const output = document.getElementById('output');
 const input = document.getElementById('userInput');
+const azulSprite = document.getElementById('azulSprite');
+
+function toggleAmber() {
+    const root = document.documentElement;
+    const isAmber = root.style.getPropertyValue('--terminal-green') === '#ffb000';
+    root.style.setProperty('--terminal-green', isAmber ? '#00ff41' : '#ffb000');
+    root.style.setProperty('--glow-color', isAmber ? 'rgba(0, 255, 65, 0.6)' : 'rgba(255, 176, 0, 0.6)');
+}
 
 async function typeText(text, url = null, geo = null) {
+    azulSprite.src = "idle_azul.png";
     let messageSpan = document.createElement("div"); 
     messageSpan.style.marginBottom = "15px";
     output.appendChild(messageSpan);
     
-    let fullText = text + (geo ? `\n\nCOORDINATES: ${geo}` : "");
+    let displayGeo = geo ? `\n\nCOORDINATES: ${geo}` : "";
+    let fullText = text + displayGeo;
     
     for (let char of fullText) {
         messageSpan.textContent += char; 
         output.scrollTop = output.scrollHeight;
-        await new Promise(r => setTimeout(r, 10));
+        await new Promise(r => setTimeout(r, 12));
     }
 
     if (url) {
-        const link = document.createElement("a");
-        link.href = url; link.target = "_blank"; link.style.color = "#fff";
-        link.textContent = "\n[SOURCE: VIEW ACADEMIC ARCHIVE]";
-        messageSpan.appendChild(link);
+        const linkAnchor = document.createElement("a");
+        linkAnchor.href = url; linkAnchor.target = "_blank";
+        linkAnchor.textContent = "\n[SOURCE: VIEW ACADEMIC ARCHIVE]";
+        messageSpan.appendChild(linkAnchor);
     }
+    azulSprite.src = "waiting_azul.png";
+    output.scrollTop = output.scrollHeight;
 }
 
 async function searchWiki(query, signal) {
+    azulSprite.src = "hover-azul.png";
     try {
         const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=extracts|coordinates&exintro&explaintext&format=json&origin=*`;
         const res = await fetch(searchUrl, { signal });
@@ -79,23 +136,31 @@ async function searchWiki(query, signal) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
 
-    // 1. MATH
-    if (/^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
+    // 1. LOCAL MATH CORE
+    if (val.includes("square root") || val.includes("rms") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
         try {
-            return { text: `CALCULATION: ${val} = ${eval(val.replace('x','*'))}`, geo: "MATH_CORE" };
-        } catch(e) {}
+            let mathQuery = val.replace("square root of", "Math.sqrt(").replace("square root", "Math.sqrt");
+            if (mathQuery.includes("Math.sqrt") && !mathQuery.includes(")")) mathQuery += ")";
+            if (val.includes("rms of")) {
+                let nums = val.match(/\d+/g).map(Number);
+                let rms = Math.sqrt(nums.map(x => x * x).reduce((a, b) => a + b) / nums.length);
+                return { text: `MATHEMATICAL PRECISION: RMS of ${nums} = ${rms.toFixed(4)}`, geo: "MATH_CORE" };
+            }
+            return { text: `MATHEMATICAL PRECISION: ${val} = ${eval(mathQuery.replace('x', '*'))}`, geo: "MATH_CORE" };
+        } catch (e) {}
     }
 
-    // 2. DISCIPLINE: Terminology check
+    // 2. DISCIPLINE: Terminology Filter
     const slangMap = { 'cats': 'felines', 'dogs': 'canines', 'octopus': 'octopi', 'pigs': 'swine' };
     for (let slang in slangMap) {
-        if (val.includes(slang)) return { text: `TERMINAL ERROR: Use '${slangMap[slang]}' for academic indexing.`, geo: "LOGIC_GATE" };
+        if (val.includes(slang)) return { text: `TERMINAL ERROR: Low-fidelity terminology. Use '${slangMap[slang]}' for academic indexing.`, geo: "LOGIC_GATE" };
     }
 
-    // 3. REFINEMENT & SEARCH
+    // 3. REFINED SEARCH & TIMEOUT
     let refined = val;
     if (["pain", "feel", "intelligent", "eat", "sweat"].some(t => val.includes(t))) refined += " biology physiology -fiction";
-    if (val.includes("saragossa")) refined = "Sargasso Sea";
+    if (val.includes("saragossa") || val.includes("sargasso")) refined = "Sargasso Sea";
+    if (val === "lead") refined = "Lead (element)";
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -104,7 +169,11 @@ async function handleQuery(q) {
     clearTimeout(timeout);
 
     if (data) {
-        let prefix = (val.includes("ethic") || val.includes("wrong")) ? `ETHICAL PROTOCOL: Science defines 'how', ethics questions 'why'.\n\n` : "";
+        if (data.title.toLowerCase().includes("film") && !val.includes("movie")) {
+             return { text: "TERMINAL ERROR: Academic mismatch. Use precise terminology (e.g. 'Octopi physiology') to bypass cultural noise." };
+        }
+        let prefix = (val.includes("ethic") || val.includes("wrong") || val.includes("moral")) ? 
+            `ETHICAL PROTOCOL: Regarding '${data.title}', science defines the 'how,' ethics questions the 'why.'\n\n` : "";
         return { text: prefix + data.extract, url: data.url, geo: data.geo };
     }
     return { text: "No academic record found. Increase query precision." };
@@ -115,23 +184,22 @@ input.addEventListener('keydown', async (e) => {
         const val = input.value;
         if (!val) return;
         input.value = "";
+        const line = document.createElement("div");
+        line.style.color = "white";
+        line.textContent = `> ${val}`;
+        output.appendChild(line);
         
-        const userLine = document.createElement("div");
-        userLine.style.color = "white";
-        userLine.textContent = `> ${val}`;
-        output.appendChild(userLine);
+        const loadingLine = document.createElement("div");
+        loadingLine.innerHTML = `AZUL: SEARCHING ARCHIVES... <span class="loading-hourglass">⌛</span>`;
+        output.appendChild(loadingLine);
         
-        const load = document.createElement("div");
-        load.innerHTML = `AZUL: SEARCHING... <span class="loading-hourglass">⌛</span>`;
-        output.appendChild(load);
-
         const res = await handleQuery(val);
-        output.removeChild(load);
+        output.removeChild(loadingLine);
         await typeText(`AZUL: ${res.text}`, res.url, res.geo);
     }
 });
 
-window.onload = () => typeText("OMNI-AZUL v2.3 ONLINE. SYSTEM READY.");
+window.onload = () => typeText("OMNI-AZUL v2.4 ONLINE. SUBJECT LOCK ACTIVE.");
 </script>
 </body>
 </html>
