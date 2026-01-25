@@ -8,56 +8,28 @@
   <style>
     :root { --terminal-green: #00ff41; --glow-color: rgba(0, 255, 65, 0.6); --header-bg: #111; }
     body, html { margin: 0; padding: 0; height: 100%; background: #050505; font-family: 'Courier New', monospace; color: var(--terminal-green); overflow: hidden; }
-
     .loading-hourglass { display: inline-block; animation: flip 1.5s infinite; margin-left: 10px; }
     @keyframes flip { 0% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } 100% { transform: rotate(180deg); } }
-
     @media print {
       #toolbar, #inputBar, #azulContainer, .btn-ui, #overlay { display: none !important; }
       body { background: white; color: black; overflow: visible; }
       #terminal { margin: 0; padding: 0; height: auto; }
       #output { text-shadow: none; color: black; overflow: visible; }
     }
-
-    #toolbar { 
-      position: fixed; top: 0; left: 0; width: 100%; height: 50px; 
-      background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); 
-      display: flex; align-items: center; justify-content: space-between; 
-      padding: 0 15px; box-sizing: border-box; z-index: 1500; 
-    }
-
+    #toolbar { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: var(--header-bg); border-bottom: 1px solid var(--terminal-green); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; box-sizing: border-box; z-index: 1500; }
     #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
     #guide { background: #000; border: 2px solid var(--terminal-green); padding: 25px; max-width: 400px; box-shadow: 0 0 15px var(--glow-color); }
-
     #terminal { position: relative; width: 100%; height: calc(100dvh - 50px); margin-top: 50px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
     #output { flex-grow: 1; white-space: pre-wrap; line-height: 1.5em; overflow-y: auto; margin-bottom: 100px; text-shadow: 0 0 5px var(--glow-color); }
-    
-    #inputBar { 
-      position: fixed; bottom: 0; left: 0; width: 100%; 
-      padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px;
-      background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); 
-      z-index: 100; box-sizing: border-box; display: flex; align-items: center;
-    }
-
+    #inputBar { position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px 15px calc(15px + env(safe-area-inset-bottom)) 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--terminal-green); z-index: 100; box-sizing: border-box; display: flex; align-items: center; }
     #userInput { flex-grow: 1; background: transparent; border: none; color: var(--terminal-green); font-family: inherit; font-size: 1rem; outline: none; }
     .btn-ui { background: var(--terminal-green); color: black; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; border-radius: 3px; font-size: 0.8rem; }
-    
     #azulContainer { position: fixed; bottom: 80px; right: 20px; width: 110px; z-index: 20; pointer-events: none; }
     #azulSprite { width: 100%; filter: drop-shadow(0 0 10px var(--glow-color)); }
     .bobbing { animation: bob 3s ease-in-out infinite; }
     @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
     a { color: #fff; text-decoration: underline; }
-
-    .fact-text { 
-      color: #ffb000; 
-      text-shadow: 0 0 8px rgba(255, 176, 0, 0.7);
-      border-left: 2px solid #ffb000;
-      padding-left: 10px;
-      margin: 10px 0;
-    }
-
-   
-
+    .fact-text { color: #ffb000; text-shadow: 0 0 8px rgba(255, 176, 0, 0.7); border-left: 2px solid #ffb000; padding-left: 10px; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -94,7 +66,7 @@
 
 <script>
 let sessionLog = []; 
-let lastResult = null; // Moved to the top for global access 
+let lastResult = null; // Memory for Citation Protocol
 
 const azulFacts = [
     "PHYSIOLOGY: Distraction osteogenesis uses mechanical tension to stimulate osteoblastic activity and lengthen bone tissue.",
@@ -200,30 +172,18 @@ async function searchWiki(query, signal) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
 
-    // --- START OF CITATION PROTOCOL ---
+    // --- CITATION PROTOCOL ---
     if (val.includes("cite") || val.includes("citation") || val.includes("mla") || val.includes("apa")) {
         azulSprite.src = "flying-azul-front-facing.png";
-
         if ((val === "cite" || val === "cite this") && lastResult) {
-            const date = new Date().toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'short', year: 'numeric'
-            });
-            return {
-                text: `MLA CITATION:\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`,
-                url: lastResult.url
-            };
+            const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            return { text: `MLA CITATION:\n"${lastResult.title}." Wikipedia, ${date}, ${lastResult.url}.`, url: lastResult.url };
         }
-
-        if (!lastResult && (val === "cite" || val === "cite this")) {
-            return { text: "CITATION ERROR: No prior source in active memory." };
-        }
-
-        return {
-            text: "CITATION PROTOCOL: Refer to the Purdue Online Writing Lab (OWL) for gold-standard MLA, APA, and Chicago formatting.",
-            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html"
+        return { 
+            text: "CITATION PROTOCOL: Refer to the Purdue Online Writing Lab (OWL) for gold-standard MLA, APA, and Chicago formatting.", 
+            url: "https://owl.purdue.edu/owl/research_and_citation/resources.html" 
         };
     }
-    // --- END OF CITATION PROTOCOL ---
 
     // 1. LOCAL MATH CORE
     if (val.includes("square root") || val.includes("rms") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
@@ -253,9 +213,7 @@ async function handleQuery(q) {
     clearTimeout(timeout);
 
     if (data) {
-        // SAVE FOR CITATION PROTOCOL
-        lastResult = data; 
-
+        lastResult = data; // Update memory for the citation protocol
         const citation = `(${data.title}, 2026). Retrieved from Omni-Azul Academic Archive.`;
         sessionLog.unshift({ query: val, citation: citation }); 
         if (sessionLog.length > 5) sessionLog.pop();
