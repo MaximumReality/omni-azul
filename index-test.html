@@ -74,15 +74,21 @@
     outline: none; 
   }
 
-  /* Shrink Azul slightly so he doesn't block the text on small screens */
-  #azulContainer { 
-    position: fixed; 
-    bottom: 100px; 
-    right: 10px; 
-    width: 80px; 
-    z-index: 20; 
-    pointer-events: none; 
-  }
+#azulContainer { 
+  position: fixed; 
+  bottom: 85px; /* Sits right above the input bar */
+  right: 15px; 
+  width: 80px; /* This locks the size so it can't be huge */
+  z-index: 20; 
+  pointer-events: none; 
+}
+
+#azulSprite { 
+  width: 100%; /* This tells the image to fill the 80px container and no more */
+  height: auto; /* Keeps the proportions correct so he isn't squished */
+  filter: drop-shadow(0 0 8px var(--glow-color)); 
+}
+
 
   #guide { 
     background: #000; 
