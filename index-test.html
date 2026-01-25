@@ -64,7 +64,7 @@
 
 <div id="overlay">
   <div id="guide">
-    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.9</h2>
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v2.0</h2>
     <p>• <strong>SEARCH:</strong> Distraction-free academic data.</p>
     <p>• <strong>SAFE-AREA:</strong> Optimized for mobile terminals.</p>
     <p>• <strong>SUBJECT LOCK:</strong> Context-aware research.</p>
@@ -170,26 +170,47 @@ async function searchWiki(query) {
 async function handleQuery(q) {
     let val = q.toLowerCase().trim();
 
-    // 1. MATH INTERCEPT (Precision First)
-    const mathPattern = /^[0-9+\-*/x().\s]+$/;
-    if (mathPattern.test(val.replace('x', '*'))) {
+    // 1. MATH FIREWALL (Fixes the Titanic/RMS glitch)
+    if (val.includes("square root") || val.includes("rms") || /^[0-9x+/\-*\s()]+$/.test(val.replace('x','*'))) {
         try {
-            const result = eval(val.replace('x', '*'));
-            return { text: `MATHEMATICAL PRECISION ACHIEVED: ${val} = ${result}`, geo: "CALC_CORE" };
-        } catch (e) { /* continue if not pure math */ }
+            let mathQuery = val.replace("square root of", "Math.sqrt(").replace("square root", "Math.sqrt");
+            if (mathQuery.includes("Math.sqrt") && !mathQuery.includes(")")) mathQuery += ")";
+            
+            // Handle RMS locally
+            if (val.includes("rms of")) {
+                let nums = val.match(/\d+/g).map(Number);
+                let rms = Math.sqrt(nums.map(x => x * x).reduce((a, b) => a + b) / nums.length);
+                return { text: `MATHEMATICAL PRECISION: RMS of ${nums} = ${rms.toFixed(4)}`, geo: "MATH_CORE" };
+            }
+
+            let result = eval(mathQuery.replace('x', '*'));
+            return { text: `MATHEMATICAL PRECISION: ${val} = ${result}`, geo: "MATH_CORE" };
+        } catch (e) { /* fall through to search if math fails */ }
     }
 
-    // 2. SEARCH WITH QUALITY CHECK
-    const data = await searchWiki(val);
+    // 2. SEARCH WITH DISCIPLINE (Fixes the Lead/Musician glitch)
+    // We add "Chemical Element" or "Biology" to specific triggers
+    let refinedQuery = val;
+    if (val === "lead" || val.includes("lead safe")) refinedQuery = "Lead (element) toxicity";
+    if (val.includes("dogs") && val.includes("pain")) refinedQuery = "Pain in dogs";
+
+    const data = await searchWiki(refinedQuery);
     
-    // If the data is irrelevant (like the Super Bowl for 2+5) 
-    // or if the search returns nothing, we trigger the "Teacher" response.
-    if (!data || data.extract.length < 100 || val.length < 3) {
-        return { 
-            text: "TERMINAL ERROR: Low-fidelity query detected. \n\nADVICE: Use precise terminology (e.g., 'Feline' instead of 'Cat', 'Physiology' instead of 'Body'). Slang and shorthand are not permitted in the Academic Archive.",
-            geo: "LOGIC_GATE_ACTIVE"
-        };
+    if (data) {
+        // Stop the "Oldboy" loop - if the title contains "film" but we didn't ask for a film
+        if (data.title.toLowerCase().includes("film") && !val.includes("movie")) {
+            return { text: "TERMINAL ERROR: Academic mismatch. Use precise biological terms (e.g., 'Octopi physiology') to bypass cultural noise." };
+        }
+        
+        let prefix = (val.includes("ethic") || val.includes("moral")) ? 
+            `ETHICAL PROTOCOL: Regarding '${data.title}', science defines the 'how,' ethics questions the 'why.'\n\n` : "";
+            
+        return { text: prefix + data.extract, url: data.url, geo: data.geo };
     }
+
+    return { text: "No academic record found. Refine query parameters." };
+}
+
 
     // 3. ETHICAL CONTEXT (Only if query is high-quality)
     let prefix = "";
@@ -220,7 +241,7 @@ input.addEventListener('keydown', async (e) => {
     }
 });
 
-window.onload = () => typeText("OMNI-AZUL v1.9 ONLINE. SUBJECT LOCK ACTIVE.");
+window.onload = () => typeText("OMNI-AZUL v2.0 ONLINE. SUBJECT LOCK ACTIVE.");
 </script>
 </body>
 </html>
