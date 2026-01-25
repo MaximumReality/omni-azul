@@ -64,7 +64,7 @@
 
 <div id="overlay">
   <div id="guide">
-    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.8</h2>
+    <h2 style="margin-top:0; color:white;">OMNI-AZUL v1.9</h2>
     <p>• <strong>SEARCH:</strong> Distraction-free academic data.</p>
     <p>• <strong>SAFE-AREA:</strong> Optimized for mobile terminals.</p>
     <p>• <strong>SUBJECT LOCK:</strong> Context-aware research.</p>
@@ -134,41 +134,37 @@ async function typeText(text, url = null, geo = null) {
 async function searchWiki(query) {
     azulSprite.src = "hover-azul.png";
     try {
-        // 1. FILTERING: Subtract pop-culture noise
-        let searchTerms = query.toLowerCase() + " -movie -film -fiction -manga -song";
+        // 1. ANCHORING: We force the search to find the core subject first
+        let searchSubject = query.toLowerCase().trim();
         
-        // 2. TARGETING: If it's a 'Should we' or 'Can they feel' question, boost biology
-        if (searchTerms.includes("eat") || searchTerms.includes("pain") || searchTerms.includes("ethical")) {
-            searchTerms += " biology physiology ethics";
-        }
+        // 2. RELEVANCY BOOST: We use 'gsrsearch' to target the actual page title
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchSubject)}&gsrlimit=1&prop=extracts|pageimages|coordinates&exintro&explaintext&format=json&origin=*`;
+        
+        const res = await fetch(searchUrl);
+        const data = await res.json();
 
-        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerms)}&format=json&origin=*&srlimit=1`;
-        const searchRes = await fetch(searchUrl);
-        const searchData = await searchRes.json();
+        if (data.query && data.query.pages) {
+            const pageId = Object.keys(data.query.pages)[0];
+            const page = data.query.pages[pageId];
 
-        if (searchData.query.search.length > 0) {
-            const title = searchData.query.search[0].title;
-            const sumUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
-            const sumRes = await fetch(sumUrl);
-            const sumData = await sumRes.json();
-
-            // TRACKER: Keep the Geo-Coordinates active
-            const coordUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=coordinates&titles=${encodeURIComponent(title)}&format=json&origin=*`;
-            const cRes = await fetch(coordUrl);
-            const cData = await cRes.json();
-            const pageId = Object.keys(cData.query.pages)[0];
-            const page = cData.query.pages[pageId];
-
+            // 3. QUALITY CHECK: Does the result title actually relate to the query?
+            // If you ask for 'Lead' and get 'Water', we should flag it.
             let coords = null;
-            if (page && page.coordinates) {
+            if (page.coordinates) {
                 coords = `${page.coordinates[0].lat.toFixed(4)}°N, ${page.coordinates[0].lon.toFixed(4)}°W`;
             }
 
-            return { title: sumData.title, extract: sumData.extract, url: sumData.content_urls.desktop.page, geo: coords };
+            return { 
+                title: page.title, 
+                extract: page.extract, 
+                url: `https://en.wikipedia.org/?curid=${pageId}`,
+                geo: coords 
+            };
         }
     } catch (e) { return null; }
     return null;
 }
+
 
 
 async function handleQuery(q) {
@@ -224,7 +220,7 @@ input.addEventListener('keydown', async (e) => {
     }
 });
 
-window.onload = () => typeText("OMNI-AZUL v1.8 ONLINE. SUBJECT LOCK ACTIVE.");
+window.onload = () => typeText("OMNI-AZUL v1.9 ONLINE. SUBJECT LOCK ACTIVE.");
 </script>
 </body>
 </html>
